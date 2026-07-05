@@ -121,7 +121,7 @@
   .team-option .name { font-weight: 600; }
   .team-option .country { color: var(--muted); font-size: 0.85rem; }
 
-  #keyBlock.hidden, #squadBlock.hidden, #searchBlock.hidden { display: none; }
+  .hidden { display: none !important; }
 
   .top-bar {
     display: flex;
@@ -211,6 +211,80 @@
   .badge.df { background: var(--df); }
   .badge.mf { background: var(--mf); }
   .badge.at { background: var(--at); }
+  .badge.entra { background: #047857; }
+  .badge.fora { background: #6b7280; }
+
+  .saldo-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    background: #111827;
+    color: #fff;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+  }
+  .saldo-bar .saldo-label { font-size: 0.85rem; color: #cbd5e1; }
+  .saldo-bar .saldo-value { font-size: 1.3rem; font-weight: 700; }
+  .saldo-bar .saldo-value.positivo { color: #4ade80; }
+  .saldo-bar .saldo-value.negativo { color: #f87171; }
+
+  .pill {
+    background: #fff;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .pill:hover { background: #f3f4f6; }
+  .pill.active { color: #fff; border-color: transparent; }
+  .pill.active.fica { background: #4b5563; }
+  .pill.active.sai { background: #b91c1c; }
+  .pill.active.fora { background: #6b7280; }
+  .pills { display: flex; gap: 4px; }
+
+  .value-fields {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .value-fields input[type="number"] { width: 64px; }
+
+  .remove-link {
+    background: none;
+    border: none;
+    color: #b91c1c;
+    font-size: 0.8rem;
+    padding: 2px 4px;
+    text-decoration: underline;
+  }
+  .remove-link:hover { background: none; color: #7f1d1d; }
+
+  .fora-group .player { opacity: 0.7; }
+
+  .reforco-form {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    padding: 10px;
+    background: #f9fafb;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+  }
+  .reforco-form > div { flex: 1; min-width: 100px; }
+  .reforco-form select {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.95rem;
+  }
 </style>
 </head>
 <body>
@@ -250,7 +324,27 @@
       <span class="club-name" id="squadClubName"></span>
       <button class="secondary" id="backToSearchBtn">Procurar outro clube</button>
     </div>
+    <div class="saldo-bar">
+      <span class="saldo-label">Saldo de mercado</span>
+      <span class="saldo-value" id="saldoValue">0,0 M€</span>
+    </div>
     <p class="status" id="squadStatus"></p>
+    <div class="row">
+      <button class="secondary" id="toggleReforcoBtn">+ Adicionar reforço</button>
+    </div>
+    <div class="reforco-form hidden" id="reforcoForm">
+      <div><input type="text" id="reforcoNome" placeholder="Nome do reforço"></div>
+      <div>
+        <select id="reforcoPosicao">
+          <option value="GK">Guarda-redes</option>
+          <option value="DF">Defesa</option>
+          <option value="MF">Médio</option>
+          <option value="AT">Avançado</option>
+        </select>
+      </div>
+      <div><input type="number" id="reforcoValor" placeholder="Valor (M€)" min="0" step="0.1"></div>
+      <button id="confirmReforcoBtn">Adicionar</button>
+    </div>
     <div id="squadList"></div>
   </section>
 
@@ -289,6 +383,12 @@
   const squadClubName = document.getElementById("squadClubName");
   const squadStatus = document.getElementById("squadStatus");
   const squadList = document.getElementById("squadList");
+  const saldoValue = document.getElementById("saldoValue");
+  const toggleReforcoBtn = document.getElementById("toggleReforcoBtn");
+  const reforcoForm = document.getElementById("reforcoForm");
+  const reforcoNome = document.getElementById("reforcoNome");
+  const reforcoPosicao = document.getElementById("reforcoPosicao");
+  const reforcoValor = document.getElementById("reforcoValor");
 
   function getKey() {
     return localStorage.getItem(KEY_STORAGE);
@@ -412,7 +512,11 @@
         name: p.name,
         age: p.age,
         photo: p.photo,
-        position: POSITION_MAP[p.position] || "MF"
+        position: POSITION_MAP[p.position] || "MF",
+        estado: "fica",
+        valor: null,
+        clubPct: 100,
+        isReforco: false
       }));
       squadClubName.textContent = teamName;
       renderSquad();
@@ -421,6 +525,61 @@
       searchStatus.textContent = "";
       searchError.textContent = "Não foi possível carregar o plantel: " + err.message;
     }
+  }
+
+  toggleReforcoBtn.addEventListener("click", () => {
+    reforcoForm.classList.toggle("hidden");
+  });
+
+  document.getElementById("confirmReforcoBtn").addEventListener("click", () => {
+    const nome = reforcoNome.value.trim();
+    const valor = parseFloat(reforcoValor.value);
+    if (!nome) {
+      alert("Escreve o nome do reforço.");
+      return;
+    }
+    if (isNaN(valor) || valor < 0) {
+      alert("Introduz um valor válido para o reforço.");
+      return;
+    }
+    players.push({
+      id: "reforco-" + Date.now(),
+      name: nome,
+      age: null,
+      photo: null,
+      position: reforcoPosicao.value,
+      estado: "entra",
+      valor: valor,
+      clubPct: 100,
+      isReforco: true
+    });
+    reforcoNome.value = "";
+    reforcoValor.value = "";
+    reforcoForm.classList.add("hidden");
+    renderSquad();
+  });
+
+  function computeSaldo() {
+    return players.reduce((total, p) => {
+      if (p.estado === "sai") {
+        const valor = parseFloat(p.valor) || 0;
+        const pct = p.clubPct != null ? parseFloat(p.clubPct) : 100;
+        return total + valor * (pct / 100);
+      }
+      if (p.estado === "entra") {
+        const valor = parseFloat(p.valor) || 0;
+        return total - valor;
+      }
+      return total;
+    }, 0);
+  }
+
+  function updateSaldoDisplay() {
+    const saldo = computeSaldo();
+    saldoValue.textContent = saldo.toLocaleString("pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " M€";
+    saldoValue.classList.remove("positivo", "negativo");
+    if (saldo > 0) saldoValue.classList.add("positivo");
+    if (saldo < 0) saldoValue.classList.add("negativo");
   }
 
   function initials(name) {
@@ -436,11 +595,14 @@
   }
 
   function renderSquad() {
-    squadStatus.textContent = players.length + " jogadores.";
+    const emAnalise = players.filter((p) => p.estado !== "fora");
+    const foraDaAnalise = players.filter((p) => p.estado === "fora");
+    squadStatus.textContent = emAnalise.length + " jogadores em análise" +
+      (foraDaAnalise.length > 0 ? " · " + foraDaAnalise.length + " fora da análise" : "") + ".";
     squadList.innerHTML = "";
 
     GROUP_ORDER.forEach((pos) => {
-      const groupPlayers = players.filter((p) => p.position === pos);
+      const groupPlayers = emAnalise.filter((p) => p.position === pos);
       if (groupPlayers.length === 0) return;
 
       const groupDiv = document.createElement("div");
@@ -457,6 +619,24 @@
 
       squadList.appendChild(groupDiv);
     });
+
+    if (foraDaAnalise.length > 0) {
+      const groupDiv = document.createElement("div");
+      groupDiv.className = "group fora-group";
+
+      const title = document.createElement("p");
+      title.className = "group-title";
+      title.textContent = "Fora da análise (" + foraDaAnalise.length + ")";
+      groupDiv.appendChild(title);
+
+      foraDaAnalise.forEach((player) => {
+        groupDiv.appendChild(renderPlayerRow(player, player.position));
+      });
+
+      squadList.appendChild(groupDiv);
+    }
+
+    updateSaldoDisplay();
   }
 
   function renderPlayerRow(player, pos) {
@@ -491,26 +671,116 @@
     nameInput.addEventListener("input", () => { player.name = nameInput.value; });
     fields.appendChild(nameInput);
 
-    const ageWrap = document.createElement("span");
-    ageWrap.className = "age-wrap";
-    ageWrap.appendChild(document.createTextNode("("));
-    const ageInput = document.createElement("input");
-    ageInput.type = "number";
-    ageInput.min = "14";
-    ageInput.max = "60";
-    ageInput.value = player.age != null ? player.age : "";
-    ageInput.addEventListener("input", () => { player.age = ageInput.value; });
-    ageWrap.appendChild(ageInput);
-    ageWrap.appendChild(document.createTextNode(")"));
-    fields.appendChild(ageWrap);
+    if (!player.isReforco) {
+      const ageWrap = document.createElement("span");
+      ageWrap.className = "age-wrap";
+      ageWrap.appendChild(document.createTextNode("("));
+      const ageInput = document.createElement("input");
+      ageInput.type = "number";
+      ageInput.min = "14";
+      ageInput.max = "60";
+      ageInput.value = player.age != null ? player.age : "";
+      ageInput.addEventListener("input", () => { player.age = ageInput.value; });
+      ageWrap.appendChild(ageInput);
+      ageWrap.appendChild(document.createTextNode(")"));
+      fields.appendChild(ageWrap);
+    }
 
     const badge = document.createElement("span");
     badge.className = "badge " + pos.toLowerCase();
     badge.textContent = pos;
     fields.appendChild(badge);
 
+    if (player.isReforco) {
+      const entraBadge = document.createElement("span");
+      entraBadge.className = "badge entra";
+      entraBadge.textContent = "ENTRA";
+      fields.appendChild(entraBadge);
+      fields.appendChild(renderValorField(player, "entra"));
+
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "remove-link";
+      removeBtn.textContent = "Remover";
+      removeBtn.addEventListener("click", () => {
+        players = players.filter((p) => p !== player);
+        renderSquad();
+      });
+      fields.appendChild(removeBtn);
+    } else {
+      fields.appendChild(renderEstadoPills(player));
+      if (player.estado === "sai") {
+        fields.appendChild(renderValorField(player, "sai"));
+      }
+      if (player.estado === "fora") {
+        const restoreBtn = document.createElement("button");
+        restoreBtn.className = "remove-link";
+        restoreBtn.textContent = "Repor";
+        restoreBtn.addEventListener("click", () => {
+          player.estado = "fica";
+          renderSquad();
+        });
+        fields.appendChild(restoreBtn);
+      }
+    }
+
     row.appendChild(fields);
     return row;
+  }
+
+  function renderEstadoPills(player) {
+    const wrap = document.createElement("span");
+    wrap.className = "pills";
+    const opcoes = [
+      { estado: "fica", label: "Fica" },
+      { estado: "sai", label: "Sai" },
+      { estado: "fora", label: "Fora" }
+    ];
+    opcoes.forEach((op) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "pill " + op.estado + (player.estado === op.estado ? " active" : "");
+      btn.textContent = op.label;
+      btn.addEventListener("click", () => {
+        player.estado = op.estado;
+        renderSquad();
+      });
+      wrap.appendChild(btn);
+    });
+    return wrap;
+  }
+
+  function renderValorField(player, tipo) {
+    const wrap = document.createElement("span");
+    wrap.className = "value-fields";
+
+    const valorInput = document.createElement("input");
+    valorInput.type = "number";
+    valorInput.min = "0";
+    valorInput.step = "0.1";
+    valorInput.placeholder = "Valor";
+    valorInput.value = player.valor != null ? player.valor : "";
+    valorInput.addEventListener("input", () => {
+      player.valor = valorInput.value;
+      updateSaldoDisplay();
+    });
+    wrap.appendChild(document.createTextNode("Valor (M€)"));
+    wrap.appendChild(valorInput);
+
+    if (tipo === "sai") {
+      const pctInput = document.createElement("input");
+      pctInput.type = "number";
+      pctInput.min = "0";
+      pctInput.max = "100";
+      pctInput.value = player.clubPct != null ? player.clubPct : 100;
+      pctInput.addEventListener("input", () => {
+        player.clubPct = pctInput.value;
+        updateSaldoDisplay();
+      });
+      wrap.appendChild(document.createTextNode("Fica no clube (%)"));
+      wrap.appendChild(pctInput);
+    }
+
+    return wrap;
   }
 
   // Arranque

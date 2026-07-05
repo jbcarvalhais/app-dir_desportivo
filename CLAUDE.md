@@ -36,11 +36,13 @@ Assim que o utilizador testar e aprovar um entregável (ex.: "está a funcionar 
 | Estado | Efeito no saldo |
 |---|---|
 | Fica | 0 |
-| Sai (vendido por V, retenção r%) | + V × (1 − r/100) |
+| Sai (vendido por V, o clube fica com p%) | + V × (p/100) |
 | Entra (reforço manual por V) | − V |
 | Fora da análise (removido, recuperável) | 0 |
 
 Valores em milhões de euros (€M), sempre introduzidos manualmente pelo utilizador. Saldo sempre visível, atualizado em tempo real.
+
+> Nota sobre a percentagem na venda: o campo pede diretamente "percentagem que fica no clube" (default 100%), não uma percentagem de corte/retenção a subtrair. Ex.: vendido por 10M€, clube fica com 80% → soma 8M€. Decisão do utilizador a 2026-07-05, mais intuitiva do que a formulação original com "retenção".
 
 ## Vistas
 - **Lista**: agrupada por linha (GK/Defesas/Médios/Avançados) segundo a posição principal, com idade inline, estado e valor.
