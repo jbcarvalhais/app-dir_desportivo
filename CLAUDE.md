@@ -6,6 +6,8 @@ Estudante de mestrado em Ciência de Dados, não programador. Todo o código é 
 ## Regra de processo
 Antes de escrever código para um novo entregável, apresentar o plano e esperar aprovação explícita. Nunca publicar no GitHub Pages sem guiar o utilizador passo a passo (é a primeira vez que o faz).
 
+Assim que o utilizador testar e aprovar um entregável (ex.: "está a funcionar e gosto"), fazer commit com mensagem descritiva e `git push` para o repositório remoto **automaticamente, sem pedir confirmação extra** — o utilizador autorizou esta prática a 2026-07-05 precisamente para não perder trabalho entre sessões/computadores. Isto aplica-se só a `git push` para o repositório de código; não se estende a GitHub Pages nem a outras ações.
+
 ## Arquitetura (fechada — não reabrir sem pedido explícito)
 - **Um único ficheiro HTML** auto-suficiente: HTML + CSS + JavaScript vanilla. Sem passo de build, sem framework, sem Streamlit.
 - Bibliotecas só por **CDN**: SortableJS (arrastar-e-largar) e html2canvas (exportar imagem).
