@@ -285,6 +285,63 @@
     border-radius: 6px;
     font-size: 0.95rem;
   }
+
+  .secundarias-text {
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+
+  .pos-toggle-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.78rem;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+  .pos-toggle-btn:hover { background: #f3f4f6; }
+
+  .position-editor {
+    flex-basis: 100%;
+    margin-top: 6px;
+    padding: 10px;
+    background: #f9fafb;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+  }
+  .position-editor .campo {
+    margin-bottom: 8px;
+  }
+  .position-editor .campo-label {
+    display: block;
+    color: var(--muted);
+    margin-bottom: 4px;
+    font-size: 0.8rem;
+  }
+  .position-editor select {
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.9rem;
+  }
+  .position-editor .linha-checkboxes {
+    margin-bottom: 6px;
+  }
+  .position-editor .linha-checkboxes .linha-nome {
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+  }
+  .position-editor label.chk {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-right: 10px;
+    font-size: 0.85rem;
+  }
+  .position-editor label.chk.disabled { color: #b0b5bd; }
 </style>
 </head>
 <body>
@@ -335,12 +392,7 @@
     <div class="reforco-form hidden" id="reforcoForm">
       <div><input type="text" id="reforcoNome" placeholder="Nome do reforço"></div>
       <div>
-        <select id="reforcoPosicao">
-          <option value="GK">Guarda-redes</option>
-          <option value="DF">Defesa</option>
-          <option value="MF">Médio</option>
-          <option value="AT">Avançado</option>
-        </select>
+        <select id="reforcoPosicao"></select>
       </div>
       <div><input type="number" id="reforcoValor" placeholder="Valor (M€)" min="0" step="0.1"></div>
       <button id="confirmReforcoBtn">Adicionar</button>
@@ -368,7 +420,30 @@
   };
   const GROUP_ORDER = ["GK", "DF", "MF", "AT"];
 
+  const POSITION_GROUPS = [
+    { line: "GK", codes: ["GK"] },
+    { line: "DF", codes: ["LB", "LWB", "LCB", "CCB", "RCB", "RB", "RWB"] },
+    { line: "MF", codes: ["LCDM", "CCDM", "RCDM", "LM", "LCM", "CCM", "RCM", "RM", "LCAM", "CCAM", "RCAM"] },
+    { line: "AT", codes: ["LW", "LST", "CST", "RST", "RW"] }
+  ];
+  const DEFAULT_POS_BY_CATEGORY = { GK: "GK", DF: "CCB", MF: "CCM", AT: "CST" };
+  const POSITION_TO_LINE = {};
+  POSITION_GROUPS.forEach((g) => g.codes.forEach((c) => { POSITION_TO_LINE[c] = g.line; }));
+
+  function lineOf(code) {
+    return POSITION_TO_LINE[code] || "MF";
+  }
+
+  function positionSelectHTML(selected) {
+    return POSITION_GROUPS.map((g) =>
+      '<optgroup label="' + GROUP_LABELS[g.line] + '">' +
+      g.codes.map((c) => '<option value="' + c + '"' + (c === selected ? " selected" : "") + '>' + c + '</option>').join("") +
+      '</optgroup>'
+    ).join("");
+  }
+
   let players = [];
+  let openEditorId = null;
 
   const keyBlock = document.getElementById("keyBlock");
   const searchBlock = document.getElementById("searchBlock");
@@ -389,6 +464,7 @@
   const reforcoNome = document.getElementById("reforcoNome");
   const reforcoPosicao = document.getElementById("reforcoPosicao");
   const reforcoValor = document.getElementById("reforcoValor");
+  reforcoPosicao.innerHTML = positionSelectHTML("CCB");
 
   function getKey() {
     return localStorage.getItem(KEY_STORAGE);
@@ -507,17 +583,21 @@
         return;
       }
       const rawPlayers = squads[0].players || [];
-      players = rawPlayers.map((p) => ({
-        id: p.id,
-        name: p.name,
-        age: p.age,
-        photo: p.photo,
-        position: POSITION_MAP[p.position] || "MF",
-        estado: "fica",
-        valor: null,
-        clubPct: 100,
-        isReforco: false
-      }));
+      players = rawPlayers.map((p) => {
+        const categoria = POSITION_MAP[p.position] || "MF";
+        return {
+          id: p.id,
+          name: p.name,
+          age: p.age,
+          photo: p.photo,
+          posPrincipal: DEFAULT_POS_BY_CATEGORY[categoria] || "CCM",
+          posSecundarias: [],
+          estado: "fica",
+          valor: null,
+          clubPct: 100,
+          isReforco: false
+        };
+      });
       squadClubName.textContent = teamName;
       renderSquad();
       showSquadScreen();
@@ -547,7 +627,8 @@
       name: nome,
       age: null,
       photo: null,
-      position: reforcoPosicao.value,
+      posPrincipal: reforcoPosicao.value,
+      posSecundarias: [],
       estado: "entra",
       valor: valor,
       clubPct: 100,
@@ -601,20 +682,20 @@
       (foraDaAnalise.length > 0 ? " · " + foraDaAnalise.length + " fora da análise" : "") + ".";
     squadList.innerHTML = "";
 
-    GROUP_ORDER.forEach((pos) => {
-      const groupPlayers = emAnalise.filter((p) => p.position === pos);
+    GROUP_ORDER.forEach((linha) => {
+      const groupPlayers = emAnalise.filter((p) => lineOf(p.posPrincipal) === linha);
       if (groupPlayers.length === 0) return;
 
       const groupDiv = document.createElement("div");
       groupDiv.className = "group";
 
       const title = document.createElement("p");
-      title.className = "group-title " + pos.toLowerCase();
-      title.textContent = GROUP_LABELS[pos] + " (" + groupPlayers.length + ")";
+      title.className = "group-title " + linha.toLowerCase();
+      title.textContent = GROUP_LABELS[linha] + " (" + groupPlayers.length + ")";
       groupDiv.appendChild(title);
 
       groupPlayers.forEach((player) => {
-        groupDiv.appendChild(renderPlayerRow(player, pos));
+        groupDiv.appendChild(renderPlayerRow(player));
       });
 
       squadList.appendChild(groupDiv);
@@ -630,7 +711,7 @@
       groupDiv.appendChild(title);
 
       foraDaAnalise.forEach((player) => {
-        groupDiv.appendChild(renderPlayerRow(player, player.position));
+        groupDiv.appendChild(renderPlayerRow(player));
       });
 
       squadList.appendChild(groupDiv);
@@ -639,7 +720,8 @@
     updateSaldoDisplay();
   }
 
-  function renderPlayerRow(player, pos) {
+  function renderPlayerRow(player) {
+    const linha = lineOf(player.posPrincipal);
     const row = document.createElement("div");
     row.className = "player";
 
@@ -687,9 +769,26 @@
     }
 
     const badge = document.createElement("span");
-    badge.className = "badge " + pos.toLowerCase();
-    badge.textContent = pos;
+    badge.className = "badge " + linha.toLowerCase();
+    badge.textContent = player.posPrincipal;
     fields.appendChild(badge);
+
+    if (player.posSecundarias.length > 0) {
+      const sec = document.createElement("span");
+      sec.className = "secundarias-text";
+      sec.textContent = "+ " + player.posSecundarias.join(", ");
+      fields.appendChild(sec);
+    }
+
+    const posToggleBtn = document.createElement("button");
+    posToggleBtn.type = "button";
+    posToggleBtn.className = "pos-toggle-btn";
+    posToggleBtn.textContent = "Posições";
+    posToggleBtn.addEventListener("click", () => {
+      openEditorId = openEditorId === player.id ? null : player.id;
+      renderSquad();
+    });
+    fields.appendChild(posToggleBtn);
 
     if (player.isReforco) {
       const entraBadge = document.createElement("span");
@@ -723,8 +822,86 @@
       }
     }
 
+    if (openEditorId === player.id) {
+      fields.appendChild(renderPositionEditor(player));
+    }
+
     row.appendChild(fields);
     return row;
+  }
+
+  function renderPositionEditor(player) {
+    const box = document.createElement("div");
+    box.className = "position-editor";
+
+    const campoPrincipal = document.createElement("div");
+    campoPrincipal.className = "campo";
+    const labelPrincipal = document.createElement("span");
+    labelPrincipal.className = "campo-label";
+    labelPrincipal.textContent = "Posição principal";
+    campoPrincipal.appendChild(labelPrincipal);
+    const selectPrincipal = document.createElement("select");
+    selectPrincipal.innerHTML = positionSelectHTML(player.posPrincipal);
+    selectPrincipal.addEventListener("change", () => {
+      player.posPrincipal = selectPrincipal.value;
+      player.posSecundarias = player.posSecundarias.filter((c) => c !== player.posPrincipal);
+      renderSquad();
+    });
+    campoPrincipal.appendChild(selectPrincipal);
+    box.appendChild(campoPrincipal);
+
+    const campoSecundarias = document.createElement("div");
+    campoSecundarias.className = "campo";
+    const labelSecundarias = document.createElement("span");
+    labelSecundarias.className = "campo-label";
+    labelSecundarias.textContent = "Posições secundárias";
+    campoSecundarias.appendChild(labelSecundarias);
+
+    POSITION_GROUPS.forEach((g) => {
+      const linhaDiv = document.createElement("div");
+      linhaDiv.className = "linha-checkboxes";
+      const linhaNome = document.createElement("span");
+      linhaNome.className = "linha-nome";
+      linhaNome.textContent = GROUP_LABELS[g.line] + ": ";
+      linhaDiv.appendChild(linhaNome);
+
+      g.codes.forEach((code) => {
+        const isPrincipal = code === player.posPrincipal;
+        const lbl = document.createElement("label");
+        lbl.className = "chk" + (isPrincipal ? " disabled" : "");
+        const chk = document.createElement("input");
+        chk.type = "checkbox";
+        chk.checked = !isPrincipal && player.posSecundarias.includes(code);
+        chk.disabled = isPrincipal;
+        chk.addEventListener("change", () => {
+          if (chk.checked) {
+            player.posSecundarias.push(code);
+          } else {
+            player.posSecundarias = player.posSecundarias.filter((c) => c !== code);
+          }
+          renderSquad();
+        });
+        lbl.appendChild(chk);
+        lbl.appendChild(document.createTextNode(code + (isPrincipal ? " (principal)" : "")));
+        linhaDiv.appendChild(lbl);
+      });
+
+      campoSecundarias.appendChild(linhaDiv);
+    });
+
+    box.appendChild(campoSecundarias);
+
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "secondary";
+    closeBtn.textContent = "Fechar";
+    closeBtn.addEventListener("click", () => {
+      openEditorId = null;
+      renderSquad();
+    });
+    box.appendChild(closeBtn);
+
+    return box;
   }
 
   function renderEstadoPills(player) {
