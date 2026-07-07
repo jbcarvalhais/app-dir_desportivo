@@ -42,23 +42,25 @@ Assim que o utilizador testar e aprovar um entregável (ex.: "está a funcionar 
 
 Valores em milhões de euros (€M), sempre introduzidos manualmente pelo utilizador. Saldo sempre visível, atualizado em tempo real.
 
+> Nota sobre visibilidade: tal como "Fora da análise", os jogadores marcados "Sai" também deixam de aparecer na Lista e no Campo principais (decisão do utilizador a 2026-07-07) — ficam numa secção "Vendidos" à parte, recuperável (basta voltar a marcar "Fica"). O valor de venda continua sempre a contar no saldo, mesmo escondido da vista principal.
+
 > Nota sobre a percentagem na venda: o campo pede diretamente "percentagem que fica no clube" (default 100%), não uma percentagem de corte/retenção a subtrair. Ex.: vendido por 10M€, clube fica com 80% → soma 8M€. Decisão do utilizador a 2026-07-05, mais intuitiva do que a formulação original com "retenção".
 
 ## Vistas
-- **Lista**: agrupada por linha (GK/Defesas/Médios/Avançados) segundo a posição principal, com idade inline, estado e valor.
-- **Campo**: jogadores num relvado por posição principal; arrastar entre zonas reposiciona e muda a principal. MVP usa quadro posicional por linhas (não formação tática rígida de 11 slots).
+- **Lista**: agrupada por linha (GK/Defesas/Médios/Avançados) segundo a posição principal, com idade inline, estado e valor. Jogadores "Sai" e "Fora da análise" ficam em secções à parte, recuperáveis.
+- **Campo**: jogadores num relvado por posição principal (só "Fica" e "Entra" aparecem); arrastar entre zonas reposiciona e muda a principal. MVP usa quadro posicional por 6 linhas (não formação tática rígida de 11 slots): Guarda-redes, Defesas (7 zonas), Médios defensivos (3), Médios (5), Médios ofensivos (3), Avançados (5) — zonas ordenadas da esquerda para a direita, para que os trios L/C/R (ex.: LCB/CCB/RCB) se definam pela zona onde o jogador é largado. Orientação: guarda-redes no fundo, avançados no topo (decisão do utilizador a 2026-07-07).
 
 ## Partilha
-- Imagem: PNG da vista de campo, descarregado para disco.
-- Link: estado do cenário codificado no próprio URL, auto-contido.
+- Imagem: PNG com cabeçalho (nome do clube + saldo), o campo (só Fica/Entra) e, por baixo, duas listas compactas "Saem" e "Entram" com valores associados. Fotos convertidas para data URL antes da exportação (contorna CORS do CDN); se uma foto falhar, usa iniciais em vez de bloquear a exportação toda.
+- Link: **adiado para o backlog** (decisão do utilizador a 2026-07-07 — não faz sentido para já). Retomar só se pedido explicitamente.
 
 ## Ordem de construção (um entregável de cada vez)
-1. Importar (chave + procurar clube + buscar plantel) → vista de lista editável, agrupada por linha, com placeholder de iniciais e idade inline.
-2. Estados (fica/sai/entra/fora) + saldo com retenção.
-3. Mini-editor de posições no cartão do jogador.
-4. Vista de campo + arrastar para reposicionar/mudar a principal.
-5. Partilha por link (estado no URL).
-6. Exportar imagem (deixado para o fim — risco conhecido de CORS/canvas com fotos de CDN externo; tratar com `crossorigin` ou fetch como blob).
+1. Importar (chave + procurar clube + buscar plantel) → vista de lista editável, agrupada por linha, com placeholder de iniciais e idade inline. ✅
+2. Estados (fica/sai/entra/fora) + saldo com retenção. ✅
+3. Mini-editor de posições no cartão do jogador. ✅
+4. Vista de campo + arrastar para reposicionar/mudar a principal. ✅
+5. ~~Partilha por link~~ — adiado para o backlog.
+6. Exportar imagem. ✅ (MVP core está completo)
 
 ## Riscos conhecidos
 - Plantel importado reflete a época terminada, não as transferências do mês corrente — o utilizador corrige à mão.

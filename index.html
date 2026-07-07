@@ -264,7 +264,7 @@
   }
   .remove-link:hover { background: none; color: #7f1d1d; }
 
-  .fora-group .player { opacity: 0.7; }
+  .fora-group .player, .vendidos-group .player { opacity: 0.7; }
 
   .reforco-form {
     display: flex;
@@ -365,11 +365,13 @@
     background: linear-gradient(#1e7d3c, #22913f);
     border-radius: 10px;
     padding: 10px;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 4px;
   }
   .campo-linha {
     display: flex;
     gap: 4px;
-    margin-bottom: 4px;
   }
   .campo-zona {
     flex: 1;
@@ -480,6 +482,7 @@
     <div class="view-tabs">
       <button class="view-tab active" id="tabListaBtn">Lista</button>
       <button class="view-tab" id="tabCampoBtn">Campo</button>
+      <button class="secondary" id="exportarImagemBtn" style="margin-left: auto;">Exportar imagem</button>
     </div>
 
     <div id="squadList"></div>
@@ -489,6 +492,7 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
   const API_BASE = "https://v3.football.api-sports.io";
   const KEY_STORAGE = "apiFootballKey";
@@ -788,15 +792,21 @@
     return div.innerHTML;
   }
 
+  function visiveis() {
+    return players.filter((p) => p.estado !== "fora" && p.estado !== "sai");
+  }
+
   function renderSquad() {
-    const emAnalise = players.filter((p) => p.estado !== "fora");
+    const emVista = visiveis();
+    const vendidos = players.filter((p) => p.estado === "sai");
     const foraDaAnalise = players.filter((p) => p.estado === "fora");
-    squadStatus.textContent = emAnalise.length + " jogadores em análise" +
+    squadStatus.textContent = emVista.length + " jogadores em análise" +
+      (vendidos.length > 0 ? " · " + vendidos.length + " vendidos" : "") +
       (foraDaAnalise.length > 0 ? " · " + foraDaAnalise.length + " fora da análise" : "") + ".";
     squadList.innerHTML = "";
 
     GROUP_ORDER.forEach((linha) => {
-      const groupPlayers = emAnalise.filter((p) => lineOf(p.posPrincipal) === linha);
+      const groupPlayers = emVista.filter((p) => lineOf(p.posPrincipal) === linha);
       if (groupPlayers.length === 0) return;
 
       const groupDiv = document.createElement("div");
@@ -813,6 +823,22 @@
 
       squadList.appendChild(groupDiv);
     });
+
+    if (vendidos.length > 0) {
+      const groupDiv = document.createElement("div");
+      groupDiv.className = "group vendidos-group";
+
+      const title = document.createElement("p");
+      title.className = "group-title";
+      title.textContent = "Vendidos (" + vendidos.length + ")";
+      groupDiv.appendChild(title);
+
+      vendidos.forEach((player) => {
+        groupDiv.appendChild(renderPlayerRow(player));
+      });
+
+      squadList.appendChild(groupDiv);
+    }
 
     if (foraDaAnalise.length > 0) {
       const groupDiv = document.createElement("div");
@@ -835,7 +861,7 @@
   }
 
   function renderCampo() {
-    const emAnalise = players.filter((p) => p.estado !== "fora");
+    const emAnalise = visiveis();
     campoContainer.innerHTML = "";
 
     FIELD_ROWS.forEach((row) => {
@@ -1149,6 +1175,174 @@
 
     return wrap;
   }
+
+  const EXPORT_WIDTH = 700;
+
+  async function imageToDataURL(url) {
+    try {
+      const res = await fetch(url, { mode: "cors" });
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      return await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function construirListaTransferencias(titulo, lista, tipo) {
+    const box = document.createElement("div");
+    box.style.cssText = "flex:1; background:#fff; border-radius:8px; padding:10px; font-size:11px;";
+
+    const titleEl = document.createElement("div");
+    titleEl.style.cssText = "font-weight:700; font-size:12px; margin-bottom:6px;";
+    titleEl.textContent = titulo;
+    box.appendChild(titleEl);
+
+    if (lista.length === 0) {
+      const vazio = document.createElement("div");
+      vazio.style.cssText = "color:#9ca3af;";
+      vazio.textContent = "Nenhum";
+      box.appendChild(vazio);
+    }
+
+    lista.forEach((p) => {
+      const linha = document.createElement("div");
+      linha.style.cssText = "display:flex; justify-content:space-between; gap:8px; padding:2px 0; border-bottom:1px solid #f0f0f0;";
+      const nome = document.createElement("span");
+      nome.textContent = p.name;
+      const valorTxt = document.createElement("span");
+      valorTxt.style.cssText = "white-space:nowrap;";
+      const valor = parseFloat(p.valor) || 0;
+      if (tipo === "sai") {
+        const pct = p.clubPct != null ? parseFloat(p.clubPct) : 100;
+        const contribuicao = valor * (pct / 100);
+        valorTxt.textContent = valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€ (" + pct + "%) = " +
+          contribuicao.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€";
+      } else {
+        valorTxt.textContent = "-" + valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€";
+      }
+      linha.appendChild(nome);
+      linha.appendChild(valorTxt);
+      box.appendChild(linha);
+    });
+
+    return box;
+  }
+
+  async function construirTemplateExportacao() {
+    const emVista = visiveis();
+    const saem = players.filter((p) => p.estado === "sai");
+    const entram = players.filter((p) => p.estado === "entra");
+
+    const fotosCache = {};
+    await Promise.all(
+      emVista.filter((p) => p.photo).map(async (p) => {
+        fotosCache[p.photo] = await imageToDataURL(p.photo);
+      })
+    );
+
+    const container = document.createElement("div");
+    container.style.cssText = "position:fixed; left:-9999px; top:0; width:" + EXPORT_WIDTH +
+      "px; background:#f5f6f8; padding:20px; font-family:Arial, sans-serif; color:#1f2430;";
+
+    const header = document.createElement("div");
+    header.style.cssText = "display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;";
+    const nomeClube = document.createElement("div");
+    nomeClube.style.cssText = "font-size:22px; font-weight:700;";
+    nomeClube.textContent = squadClubName.textContent || "";
+    const saldoEl = document.createElement("div");
+    const saldo = computeSaldo();
+    saldoEl.style.cssText = "font-size:18px; font-weight:700; color:" +
+      (saldo > 0 ? "#15803d" : saldo < 0 ? "#b91c1c" : "#374151") + ";";
+    saldoEl.textContent = "Saldo: " + saldo.toLocaleString("pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " M€";
+    header.appendChild(nomeClube);
+    header.appendChild(saldoEl);
+    container.appendChild(header);
+
+    const pitch = document.createElement("div");
+    pitch.style.cssText = "background:linear-gradient(#1e7d3c, #22913f); border-radius:10px; padding:10px; display:flex; flex-direction:column-reverse; gap:4px;";
+
+    FIELD_ROWS.forEach((row) => {
+      const linhaDiv = document.createElement("div");
+      linhaDiv.style.cssText = "display:flex; gap:4px;";
+
+      row.codes.forEach((code) => {
+        const zona = document.createElement("div");
+        zona.style.cssText = "flex:1; min-height:56px; border:1px dashed rgba(255,255,255,0.45); border-radius:6px; padding:3px; display:flex; flex-direction:column; gap:3px;";
+
+        const label = document.createElement("div");
+        label.style.cssText = "font-size:9px; color:rgba(255,255,255,0.9); text-align:center; font-weight:700;";
+        label.textContent = code;
+        zona.appendChild(label);
+
+        emVista.filter((p) => p.posPrincipal === code).forEach((player) => {
+          const chip = document.createElement("div");
+          chip.style.cssText = "background:#fff; border-radius:5px; padding:2px 4px; display:flex; align-items:center; gap:3px; font-size:10px; border-left:3px solid " +
+            (player.estado === "entra" ? "#047857" : "transparent") + ";";
+
+          if (player.photo && fotosCache[player.photo]) {
+            const img = document.createElement("img");
+            img.src = fotosCache[player.photo];
+            img.style.cssText = "width:16px; height:16px; border-radius:50%; object-fit:cover; flex-shrink:0;";
+            chip.appendChild(img);
+          } else {
+            const ph = document.createElement("div");
+            ph.style.cssText = "width:16px; height:16px; border-radius:50%; background:#d1d5db; color:#374151; display:flex; align-items:center; justify-content:center; font-size:7px; font-weight:700; flex-shrink:0;";
+            ph.textContent = initials(player.name);
+            chip.appendChild(ph);
+          }
+
+          const nome = document.createElement("span");
+          nome.style.cssText = "overflow:hidden; text-overflow:ellipsis; white-space:nowrap;";
+          nome.textContent = player.name;
+          chip.appendChild(nome);
+
+          zona.appendChild(chip);
+        });
+
+        linhaDiv.appendChild(zona);
+      });
+
+      pitch.appendChild(linhaDiv);
+    });
+    container.appendChild(pitch);
+
+    const listas = document.createElement("div");
+    listas.style.cssText = "display:flex; gap:16px; margin-top:14px;";
+    listas.appendChild(construirListaTransferencias("Saem", saem, "sai"));
+    listas.appendChild(construirListaTransferencias("Entram", entram, "entra"));
+    container.appendChild(listas);
+
+    return container;
+  }
+
+  document.getElementById("exportarImagemBtn").addEventListener("click", async () => {
+    const exportBtn = document.getElementById("exportarImagemBtn");
+    const textoOriginal = exportBtn.textContent;
+    exportBtn.disabled = true;
+    exportBtn.textContent = "A gerar imagem...";
+    let template = null;
+    try {
+      template = await construirTemplateExportacao();
+      document.body.appendChild(template);
+      const canvas = await html2canvas(template, { backgroundColor: "#f5f6f8", scale: 2 });
+      const link = document.createElement("a");
+      link.download = (squadClubName.textContent || "plantel").trim().replace(/\s+/g, "_") + "_diretor-desportivo.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (err) {
+      alert("Não foi possível gerar a imagem: " + err.message);
+    } finally {
+      if (template) template.remove();
+      exportBtn.disabled = false;
+      exportBtn.textContent = textoOriginal;
+    }
+  });
 
   // Arranque
   if (getKey()) {
