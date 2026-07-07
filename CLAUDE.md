@@ -15,6 +15,13 @@ Assim que o utilizador testar e aprovar um entregável (ex.: "está a funcionar 
 - Fonte de dados: **API-Football** (`https://v3.football.api-sports.io`), autenticação por header `x-apisports-key`, chamada direta do browser (sem proxy).
 - A chave da API **nunca** vai no código. É pedida uma vez ao utilizador e guardada só no `localStorage` do seu browser. Um cenário partilhado (link/imagem) é um snapshot de dados — quem o abre não precisa de chave.
 
+## Identidade visual (fechada — não reabrir sem pedido explícito)
+Direção "sala de reuniões do clube": visual escuro e sóbrio, inspirado nas gráficas de transferências dos canais desportivos e no boardroom de um clube, não numa app de startup. Decisão do utilizador a 2026-07-07.
+- **Cores** (variáveis CSS no `:root`): `--bg` azul-marinho quase preto (#0E1A24), `--card`/`--surface` tons ligeiramente mais claros para cartões e campos de formulário, `--brass` dourado envelhecido (#B8955A) como **única cor de destaque** (botões, estados ativos), `--pitch` verde relvado reservado só à vista de Campo. Estados semânticos (`--signal-red`/`--signal-green`) separados da cor de destaque. Posições por linha usam uma paleta discreta própria (`--gk`/`--df`/`--mf`/`--at`), não cores web genéricas.
+- **Tipografia** (Google Fonts via CDN): "Big Shoulders Display" (condensada, tipo placar de estádio) para títulos, nome do clube e cabeçalhos; "IBM Plex Sans" para todo o texto de interface; "IBM Plex Mono" para números (saldo, valores), sempre com `font-variant-numeric: tabular-nums`.
+- **Layout:** cabeçalho do plantel ("masthead") junta o escudo do clube (vindo da API-Football) + nome + saldo em destaque, em vez de elementos separados.
+- Esta identidade aplica-se a toda a app, incluindo a imagem exportada (mesmo cabeçalho, cores e tipografia).
+
 ## Princípios centrais
 - **"Tudo o que vem da API é semente, tudo é editável"**: os dados importados (nome, foto, idade, posição) são só ponto de partida. O utilizador edita tudo depois.
 - **"Espelho, não validador"**: a app mostra fielmente o que o utilizador definir (ex.: três centrais LCB/CCB/RCB se for isso que ele escolher). Nunca valida nem redistribui posições automaticamente.

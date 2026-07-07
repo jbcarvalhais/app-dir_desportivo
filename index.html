@@ -4,33 +4,62 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Diretor Desportivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --gk: #d97706;
-    --df: #2563eb;
-    --mf: #16a34a;
-    --at: #dc2626;
-    --bg: #f5f6f8;
-    --card: #ffffff;
-    --text: #1f2430;
-    --muted: #6b7280;
-    --border: #e2e4e9;
+    --bg: #0E1A24;
+    --card: #16232F;
+    --surface: #1D2C39;
+    --text: #EAEDEF;
+    --muted: #8A9BA8;
+    --border: #24343F;
+
+    --brass: #B8955A;
+    --brass-2: #D4B67E;
+    --brass-rgb: 184, 149, 90;
+
+    --pitch: #1F6F45;
+    --pitch-2: #123B26;
+
+    --gk: #B8955A;
+    --df: #35506A;
+    --mf: #4A6140;
+    --at: #8C5423;
+
+    --signal-red: #E07A6D;
+    --signal-red-fill: #A83B2E;
+    --signal-green: #4CAF7D;
+    --signal-green-fill: #1F7A50;
+    --neutral-fill: #3B4956;
+
+    --chalk: #F0F2F4;
+
+    --font-display: 'Big Shoulders Display', sans-serif;
+    --font-body: 'IBM Plex Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', 'IBM Plex Sans', monospace;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    font-family: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
   }
   header {
-    background: #111827;
-    color: #fff;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
     padding: 18px 20px;
   }
   header h1 {
     margin: 0;
-    font-size: 1.3rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--brass);
+    font-size: 1.5rem;
   }
   main {
     max-width: 760px;
@@ -46,7 +75,11 @@
   }
   section h2 {
     margin-top: 0;
-    font-size: 1.05rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    font-size: 1.2rem;
+    color: var(--text);
   }
   label {
     display: block;
@@ -60,7 +93,12 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 0.95rem;
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--font-body);
   }
+  input::placeholder { color: var(--muted); opacity: 1; }
+  input[type="number"] { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
   .row {
     display: flex;
     gap: 8px;
@@ -68,30 +106,32 @@
   }
   .row > div { flex: 1; }
   button {
-    background: #2563eb;
-    color: #fff;
+    background: var(--brass);
+    color: var(--bg);
     border: none;
     border-radius: 6px;
     padding: 9px 16px;
     font-size: 0.95rem;
+    font-weight: 600;
+    font-family: var(--font-body);
     cursor: pointer;
     white-space: nowrap;
   }
-  button:hover { background: #1d4ed8; }
+  button:hover { background: var(--brass-2); }
   button.secondary {
     background: transparent;
-    color: #2563eb;
-    border: 1px solid #2563eb;
+    color: var(--brass);
+    border: 1px solid var(--brass);
   }
-  button.secondary:hover { background: #eef2ff; }
-  button:disabled { background: #9ca3af; cursor: default; }
+  button.secondary:hover { background: rgba(var(--brass-rgb), 0.14); }
+  button:disabled { background: var(--neutral-fill); color: var(--muted); cursor: default; }
   .hint {
     font-size: 0.82rem;
     color: var(--muted);
     margin-top: 8px;
   }
   .error {
-    color: #b91c1c;
+    color: var(--signal-red);
     font-size: 0.9rem;
     margin-top: 8px;
   }
@@ -114,9 +154,9 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     cursor: pointer;
-    background: #fafafa;
+    background: var(--surface);
   }
-  .team-option:hover { background: #eef2ff; }
+  .team-option:hover { background: rgba(var(--brass-rgb), 0.14); }
   .team-option img { width: 28px; height: 28px; object-fit: contain; }
   .team-option .name { font-weight: 600; }
   .team-option .country { color: var(--muted); font-size: 0.85rem; }
@@ -130,15 +170,55 @@
     flex-wrap: wrap;
     gap: 8px;
   }
-  .top-bar .club-name { font-weight: 700; font-size: 1.1rem; }
+
+  .masthead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+  }
+  .masthead-club { display: flex; align-items: center; gap: 12px; }
+  .club-crest { width: 44px; height: 44px; object-fit: contain; flex-shrink: 0; }
+  .masthead-club .club-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.6rem;
+    letter-spacing: 0.01em;
+    color: var(--text);
+  }
+  .masthead-saldo { text-align: right; }
+  .masthead-saldo .saldo-label {
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+  .masthead-saldo .saldo-value {
+    font-family: var(--font-mono);
+    font-size: 1.7rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+  .masthead-saldo .saldo-value.positivo { color: var(--signal-green); }
+  .masthead-saldo .saldo-value.negativo { color: var(--signal-red); }
 
   .group {
     margin-bottom: 20px;
   }
   .group-title {
-    font-size: 0.85rem;
+    font-family: var(--font-display);
+    font-size: 0.9rem;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
     color: var(--muted);
     margin: 0 0 8px;
     padding-bottom: 4px;
@@ -163,15 +243,15 @@
     border-radius: 50%;
     object-fit: cover;
     flex-shrink: 0;
-    background: #e5e7eb;
+    background: var(--surface);
   }
   .avatar-placeholder {
     width: 42px;
     height: 42px;
     border-radius: 50%;
     flex-shrink: 0;
-    background: #d1d5db;
-    color: #374151;
+    background: var(--surface);
+    color: var(--text);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -199,38 +279,26 @@
     gap: 3px;
     color: var(--muted);
     font-size: 0.9rem;
+    font-family: var(--font-mono);
   }
   .badge {
-    font-size: 0.7rem;
+    font-family: var(--font-display);
+    font-size: 0.72rem;
     font-weight: 700;
-    padding: 2px 6px;
+    letter-spacing: 0.02em;
+    padding: 2px 7px;
     border-radius: 4px;
-    color: #fff;
+    color: var(--text);
   }
-  .badge.gk { background: var(--gk); }
+  .badge.gk { background: var(--gk); color: var(--bg); }
   .badge.df { background: var(--df); }
   .badge.mf { background: var(--mf); }
   .badge.at { background: var(--at); }
-  .badge.entra { background: #047857; }
-  .badge.fora { background: #6b7280; }
-
-  .saldo-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    background: #111827;
-    color: #fff;
-    border-radius: 8px;
-    padding: 12px 16px;
-    margin-bottom: 16px;
-  }
-  .saldo-bar .saldo-label { font-size: 0.85rem; color: #cbd5e1; }
-  .saldo-bar .saldo-value { font-size: 1.3rem; font-weight: 700; }
-  .saldo-bar .saldo-value.positivo { color: #4ade80; }
-  .saldo-bar .saldo-value.negativo { color: #f87171; }
+  .badge.entra { background: var(--signal-green-fill); }
+  .badge.fora { background: var(--neutral-fill); }
 
   .pill {
-    background: #fff;
+    background: var(--surface);
     color: var(--text);
     border: 1px solid var(--border);
     border-radius: 20px;
@@ -238,11 +306,11 @@
     font-size: 0.78rem;
     cursor: pointer;
   }
-  .pill:hover { background: #f3f4f6; }
-  .pill.active { color: #fff; border-color: transparent; }
-  .pill.active.fica { background: #4b5563; }
-  .pill.active.sai { background: #b91c1c; }
-  .pill.active.fora { background: #6b7280; }
+  .pill:hover { background: var(--border); }
+  .pill.active { color: var(--text); border-color: transparent; }
+  .pill.active.fica { background: var(--neutral-fill); }
+  .pill.active.sai { background: var(--signal-red-fill); }
+  .pill.active.fora { background: var(--neutral-fill); }
   .pills { display: flex; gap: 4px; }
 
   .value-fields {
@@ -257,12 +325,12 @@
   .remove-link {
     background: none;
     border: none;
-    color: #b91c1c;
+    color: var(--signal-red);
     font-size: 0.8rem;
     padding: 2px 4px;
     text-decoration: underline;
   }
-  .remove-link:hover { background: none; color: #7f1d1d; }
+  .remove-link:hover { background: none; color: var(--signal-red-fill); }
 
   .fora-group .player, .vendidos-group .player { opacity: 0.7; }
 
@@ -273,7 +341,7 @@
     flex-wrap: wrap;
     margin-top: 10px;
     padding: 10px;
-    background: #f9fafb;
+    background: var(--surface);
     border: 1px dashed var(--border);
     border-radius: 8px;
   }
@@ -284,6 +352,8 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 0.95rem;
+    background: var(--card);
+    color: var(--text);
   }
 
   .secundarias-text {
@@ -299,13 +369,13 @@
     padding: 3px 8px;
     border-radius: 6px;
   }
-  .pos-toggle-btn:hover { background: #f3f4f6; }
+  .pos-toggle-btn:hover { background: var(--surface); }
 
   .position-editor {
     flex-basis: 100%;
     margin-top: 6px;
     padding: 10px;
-    background: #f9fafb;
+    background: var(--surface);
     border: 1px dashed var(--border);
     border-radius: 8px;
     font-size: 0.85rem;
@@ -324,6 +394,8 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 0.9rem;
+    background: var(--card);
+    color: var(--text);
   }
   .position-editor .linha-checkboxes {
     margin-bottom: 6px;
@@ -341,7 +413,7 @@
     margin-right: 10px;
     font-size: 0.85rem;
   }
-  .position-editor label.chk.disabled { color: #b0b5bd; }
+  .position-editor label.chk.disabled { color: #4E5C68; }
 
   .view-tabs {
     display: flex;
@@ -349,20 +421,21 @@
     margin: 14px 0 10px;
   }
   .view-tab {
-    background: #fff;
+    background: var(--surface);
     color: var(--muted);
     border: 1px solid var(--border);
     padding: 6px 14px;
     border-radius: 6px;
   }
   .view-tab.active {
-    background: #111827;
-    color: #fff;
-    border-color: #111827;
+    background: var(--brass);
+    color: var(--bg);
+    border-color: var(--brass);
+    font-weight: 600;
   }
 
   .campo-container {
-    background: linear-gradient(#1e7d3c, #22913f);
+    background: linear-gradient(180deg, var(--pitch), var(--pitch-2));
     border-radius: 10px;
     padding: 10px;
     display: flex;
@@ -376,7 +449,7 @@
   .campo-zona {
     flex: 1;
     min-height: 62px;
-    border: 1px dashed rgba(255,255,255,0.45);
+    border: 1px dashed rgba(255,255,255,0.35);
     border-radius: 6px;
     padding: 3px;
     display: flex;
@@ -384,24 +457,27 @@
     gap: 3px;
   }
   .campo-zona-label {
-    font-size: 0.58rem;
-    color: rgba(255,255,255,0.9);
+    font-family: var(--font-display);
+    font-size: 0.6rem;
+    letter-spacing: 0.03em;
+    color: rgba(255,255,255,0.85);
     text-align: center;
     font-weight: 700;
   }
   .campo-chip {
-    background: #fff;
+    background: var(--chalk);
     border-radius: 5px;
     padding: 2px 4px;
     display: flex;
     align-items: center;
     gap: 3px;
     font-size: 0.68rem;
+    color: #1C242B;
     cursor: grab;
     border-left: 3px solid transparent;
   }
-  .campo-chip.chip-sai { border-left-color: #b91c1c; }
-  .campo-chip.chip-entra { border-left-color: #047857; }
+  .campo-chip.chip-sai { border-left-color: var(--signal-red-fill); }
+  .campo-chip.chip-entra { border-left-color: var(--signal-green-fill); }
   .campo-chip .campo-avatar, .campo-chip .campo-avatar-placeholder {
     width: 18px;
     height: 18px;
@@ -410,8 +486,8 @@
     flex-shrink: 0;
   }
   .campo-chip .campo-avatar-placeholder {
-    background: #d1d5db;
-    color: #374151;
+    background: #C7CFD6;
+    color: #1C242B;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -458,13 +534,18 @@
   </section>
 
   <section id="squadBlock" class="hidden">
-    <div class="top-bar">
-      <span class="club-name" id="squadClubName"></span>
+    <div class="top-bar" style="justify-content: flex-end;">
       <button class="secondary" id="backToSearchBtn">Procurar outro clube</button>
     </div>
-    <div class="saldo-bar">
-      <span class="saldo-label">Saldo de mercado</span>
-      <span class="saldo-value" id="saldoValue">0,0 M€</span>
+    <div class="masthead">
+      <div class="masthead-club">
+        <img id="squadClubLogo" class="club-crest" src="" alt="" onerror="this.style.visibility='hidden'">
+        <span class="club-name" id="squadClubName"></span>
+      </div>
+      <div class="masthead-saldo">
+        <span class="saldo-label">Saldo de mercado</span>
+        <span class="saldo-value" id="saldoValue">0,0 M€</span>
+      </div>
     </div>
     <p class="status" id="squadStatus"></p>
     <div class="row">
@@ -556,6 +637,7 @@
   const searchError = document.getElementById("searchError");
   const teamResults = document.getElementById("teamResults");
   const squadClubName = document.getElementById("squadClubName");
+  const squadClubLogo = document.getElementById("squadClubLogo");
   const squadStatus = document.getElementById("squadStatus");
   const squadList = document.getElementById("squadList");
   const campoContainer = document.getElementById("campoContainer");
@@ -666,7 +748,7 @@
           '<img src="' + (t.logo || "") + '" onerror="this.style.visibility=\'hidden\'">' +
           '<div><div class="name">' + escapeHtml(t.name) + '</div>' +
           '<div class="country">' + escapeHtml(t.country || "") + '</div></div>';
-        div.addEventListener("click", () => loadSquad(t.id, t.name));
+        div.addEventListener("click", () => loadSquad(t.id, t.name, t.logo));
         teamResults.appendChild(div);
       });
     } catch (err) {
@@ -675,7 +757,7 @@
     }
   }
 
-  async function loadSquad(teamId, teamName) {
+  async function loadSquad(teamId, teamName, teamLogo) {
     searchError.textContent = "";
     searchStatus.textContent = "A carregar o plantel...";
     try {
@@ -702,6 +784,8 @@
         };
       });
       squadClubName.textContent = teamName;
+      squadClubLogo.style.visibility = "visible";
+      squadClubLogo.src = teamLogo || "";
       renderSquad();
       showSquadScreen();
     } catch (err) {
@@ -1196,27 +1280,27 @@
 
   function construirListaTransferencias(titulo, lista, tipo) {
     const box = document.createElement("div");
-    box.style.cssText = "flex:1; background:#fff; border-radius:8px; padding:10px; font-size:11px;";
+    box.style.cssText = "flex:1; background:#1D2C39; border-radius:8px; padding:10px; font-size:11px; font-family:'IBM Plex Sans', Arial, sans-serif; color:#EAEDEF;";
 
     const titleEl = document.createElement("div");
-    titleEl.style.cssText = "font-weight:700; font-size:12px; margin-bottom:6px;";
+    titleEl.style.cssText = "font-family:'Big Shoulders Display', Arial, sans-serif; font-weight:700; font-size:13px; letter-spacing:0.03em; text-transform:uppercase; margin-bottom:6px; color:#B8955A;";
     titleEl.textContent = titulo;
     box.appendChild(titleEl);
 
     if (lista.length === 0) {
       const vazio = document.createElement("div");
-      vazio.style.cssText = "color:#9ca3af;";
+      vazio.style.cssText = "color:#8A9BA8;";
       vazio.textContent = "Nenhum";
       box.appendChild(vazio);
     }
 
     lista.forEach((p) => {
       const linha = document.createElement("div");
-      linha.style.cssText = "display:flex; justify-content:space-between; gap:8px; padding:2px 0; border-bottom:1px solid #f0f0f0;";
+      linha.style.cssText = "display:flex; justify-content:space-between; gap:8px; padding:3px 0; border-bottom:1px solid #24343F;";
       const nome = document.createElement("span");
       nome.textContent = p.name;
       const valorTxt = document.createElement("span");
-      valorTxt.style.cssText = "white-space:nowrap;";
+      valorTxt.style.cssText = "white-space:nowrap; font-family:'IBM Plex Mono', monospace;";
       const valor = parseFloat(p.valor) || 0;
       if (tipo === "sai") {
         const pct = p.clubPct != null ? parseFloat(p.clubPct) : 100;
@@ -1240,6 +1324,7 @@
     const entram = players.filter((p) => p.estado === "entra");
 
     const fotosCache = {};
+    const logoSrc = squadClubLogo.style.visibility !== "hidden" && squadClubLogo.src ? await imageToDataURL(squadClubLogo.src) : null;
     await Promise.all(
       emVista.filter((p) => p.photo).map(async (p) => {
         fotosCache[p.photo] = await imageToDataURL(p.photo);
@@ -1248,24 +1333,41 @@
 
     const container = document.createElement("div");
     container.style.cssText = "position:fixed; left:-9999px; top:0; width:" + EXPORT_WIDTH +
-      "px; background:#f5f6f8; padding:20px; font-family:Arial, sans-serif; color:#1f2430;";
+      "px; background:#0E1A24; padding:20px; font-family:'IBM Plex Sans', Arial, sans-serif; color:#EAEDEF;";
 
     const header = document.createElement("div");
-    header.style.cssText = "display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;";
+    header.style.cssText = "display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; background:#1D2C39; border-radius:10px; padding:14px 16px;";
+    const clubeWrap = document.createElement("div");
+    clubeWrap.style.cssText = "display:flex; align-items:center; gap:10px;";
+    if (logoSrc) {
+      const logoImg = document.createElement("img");
+      logoImg.src = logoSrc;
+      logoImg.style.cssText = "width:36px; height:36px; object-fit:contain; flex-shrink:0;";
+      clubeWrap.appendChild(logoImg);
+    }
     const nomeClube = document.createElement("div");
-    nomeClube.style.cssText = "font-size:22px; font-weight:700;";
+    nomeClube.style.cssText = "font-family:'Big Shoulders Display', Arial, sans-serif; font-size:24px; font-weight:700;";
     nomeClube.textContent = squadClubName.textContent || "";
+    clubeWrap.appendChild(nomeClube);
+    header.appendChild(clubeWrap);
+
+    const saldoWrap = document.createElement("div");
+    saldoWrap.style.cssText = "text-align:right;";
+    const saldoLabel = document.createElement("div");
+    saldoLabel.style.cssText = "font-size:9px; text-transform:uppercase; letter-spacing:0.09em; color:#8A9BA8;";
+    saldoLabel.textContent = "Saldo de mercado";
     const saldoEl = document.createElement("div");
     const saldo = computeSaldo();
-    saldoEl.style.cssText = "font-size:18px; font-weight:700; color:" +
-      (saldo > 0 ? "#15803d" : saldo < 0 ? "#b91c1c" : "#374151") + ";";
-    saldoEl.textContent = "Saldo: " + saldo.toLocaleString("pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " M€";
-    header.appendChild(nomeClube);
-    header.appendChild(saldoEl);
+    saldoEl.style.cssText = "font-family:'IBM Plex Mono', monospace; font-size:20px; font-weight:600; color:" +
+      (saldo > 0 ? "#4CAF7D" : saldo < 0 ? "#E07A6D" : "#EAEDEF") + ";";
+    saldoEl.textContent = saldo.toLocaleString("pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " M€";
+    saldoWrap.appendChild(saldoLabel);
+    saldoWrap.appendChild(saldoEl);
+    header.appendChild(saldoWrap);
     container.appendChild(header);
 
     const pitch = document.createElement("div");
-    pitch.style.cssText = "background:linear-gradient(#1e7d3c, #22913f); border-radius:10px; padding:10px; display:flex; flex-direction:column-reverse; gap:4px;";
+    pitch.style.cssText = "background:linear-gradient(180deg, #1F6F45, #123B26); border-radius:10px; padding:10px; display:flex; flex-direction:column-reverse; gap:4px;";
 
     FIELD_ROWS.forEach((row) => {
       const linhaDiv = document.createElement("div");
@@ -1273,17 +1375,17 @@
 
       row.codes.forEach((code) => {
         const zona = document.createElement("div");
-        zona.style.cssText = "flex:1; min-height:56px; border:1px dashed rgba(255,255,255,0.45); border-radius:6px; padding:3px; display:flex; flex-direction:column; gap:3px;";
+        zona.style.cssText = "flex:1; min-height:56px; border:1px dashed rgba(255,255,255,0.35); border-radius:6px; padding:3px; display:flex; flex-direction:column; gap:3px;";
 
         const label = document.createElement("div");
-        label.style.cssText = "font-size:9px; color:rgba(255,255,255,0.9); text-align:center; font-weight:700;";
+        label.style.cssText = "font-family:'Big Shoulders Display', Arial, sans-serif; font-size:9px; color:rgba(255,255,255,0.85); text-align:center; font-weight:700;";
         label.textContent = code;
         zona.appendChild(label);
 
         emVista.filter((p) => p.posPrincipal === code).forEach((player) => {
           const chip = document.createElement("div");
-          chip.style.cssText = "background:#fff; border-radius:5px; padding:2px 4px; display:flex; align-items:center; gap:3px; font-size:10px; border-left:3px solid " +
-            (player.estado === "entra" ? "#047857" : "transparent") + ";";
+          chip.style.cssText = "background:#F0F2F4; color:#1C242B; border-radius:5px; padding:2px 4px; display:flex; align-items:center; gap:3px; font-size:10px; border-left:3px solid " +
+            (player.estado === "entra" ? "#1F7A50" : "transparent") + ";";
 
           if (player.photo && fotosCache[player.photo]) {
             const img = document.createElement("img");
@@ -1292,7 +1394,7 @@
             chip.appendChild(img);
           } else {
             const ph = document.createElement("div");
-            ph.style.cssText = "width:16px; height:16px; border-radius:50%; background:#d1d5db; color:#374151; display:flex; align-items:center; justify-content:center; font-size:7px; font-weight:700; flex-shrink:0;";
+            ph.style.cssText = "width:16px; height:16px; border-radius:50%; background:#C7CFD6; color:#1C242B; display:flex; align-items:center; justify-content:center; font-size:7px; font-weight:700; flex-shrink:0;";
             ph.textContent = initials(player.name);
             chip.appendChild(ph);
           }
@@ -1330,7 +1432,7 @@
     try {
       template = await construirTemplateExportacao();
       document.body.appendChild(template);
-      const canvas = await html2canvas(template, { backgroundColor: "#f5f6f8", scale: 2 });
+      const canvas = await html2canvas(template, { backgroundColor: "#0E1A24", scale: 2 });
       const link = document.createElement("a");
       link.download = (squadClubName.textContent || "plantel").trim().replace(/\s+/g, "_") + "_diretor-desportivo.png";
       link.href = canvas.toDataURL("image/png");
