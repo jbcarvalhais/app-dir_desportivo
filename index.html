@@ -290,7 +290,7 @@
   .player-fields input[type="number"] {
     width: 58px;
   }
-  .age-wrap {
+  .numero-wrap {
     display: flex;
     align-items: center;
     gap: 3px;
@@ -298,6 +298,19 @@
     font-size: 0.9rem;
     font-family: var(--font-mono);
   }
+  .numero-wrap input[type="number"] { width: 52px; }
+
+  .drag-handle {
+    cursor: grab;
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0 2px;
+    touch-action: none;
+    flex-shrink: 0;
+  }
+  .drag-handle:active { cursor: grabbing; }
+  .group-rows .player:last-child { border-bottom: none; }
   .badge {
     font-family: var(--font-display);
     font-size: 0.72rem;
@@ -516,6 +529,19 @@
   }
   .campo-zona-stack .campo-zona .campo-zona-label {
     font-size: 0.52rem;
+  }
+  .campo-zona.campo-zona-spacer { border-color: transparent; }
+  .campo-zona-principais, .campo-zona-secundarias {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .campo-numero {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--brass);
+    flex-shrink: 0;
   }
   .campo-zona-label {
     font-family: var(--font-display);
@@ -738,10 +764,10 @@
   const FIELD_ROWS = [
     { label: "Guarda-redes", codes: ["GK"], compact: true },
     { label: "Defesas", codes: [["LWB", "LB"], "LCB", "CCB", "RCB", ["RWB", "RB"]] },
-    { label: "Médios defensivos", codes: ["LCDM", "CCDM", "RCDM"] },
+    { label: "Médios defensivos", codes: [null, "LCDM", "CCDM", "RCDM", null] },
     { label: "Médios", codes: ["LM", "LCM", "CCM", "RCM", "RM"] },
     { label: "Médios ofensivos", codes: ["LW", "LCAM", "CCAM", "RCAM", "RW"] },
-    { label: "Avançados", codes: ["LST", "CST", "RST"] }
+    { label: "Avançados", codes: [null, "LST", "CST", "RST", null] }
   ];
 
   function positionSelectHTML(selected) {
@@ -959,7 +985,7 @@
         return {
           id: p.id,
           name: p.name,
-          age: p.age,
+          numero: p.number != null ? p.number : null,
           photo: p.photo,
           posPrincipal: DEFAULT_POS_BY_CATEGORY[categoria] || "CCM",
           posSecundarias: [],
@@ -1027,7 +1053,7 @@
     players.push({
       id: "reforco-" + Date.now(),
       name: nome,
-      age: null,
+      numero: null,
       photo: null,
       posPrincipal: reforcoPosicao.value,
       posSecundarias: [],
@@ -1188,6 +1214,39 @@
     return players.filter((p) => p.estado !== "fora" && p.estado !== "sai" && p.estado !== "emprestado");
   }
 
+  function moverJogadorNoArray(player, matchFn, newIndex) {
+    const semPlayer = players.filter((p) => p !== player);
+    const subsetIndices = [];
+    semPlayer.forEach((p, i) => { if (matchFn(p)) subsetIndices.push(i); });
+    let insertAt;
+    if (subsetIndices.length === 0) {
+      insertAt = semPlayer.length;
+    } else if (newIndex >= subsetIndices.length) {
+      insertAt = subsetIndices[subsetIndices.length - 1] + 1;
+    } else {
+      insertAt = subsetIndices[newIndex];
+    }
+    semPlayer.splice(insertAt, 0, player);
+    players = semPlayer;
+  }
+
+  function renderGroupRows(container, groupPlayers, matchFn) {
+    const rowsWrap = document.createElement("div");
+    rowsWrap.className = "group-rows";
+    groupPlayers.forEach((player) => rowsWrap.appendChild(renderPlayerRow(player)));
+    container.appendChild(rowsWrap);
+    Sortable.create(rowsWrap, {
+      animation: 150,
+      handle: ".drag-handle",
+      onEnd: function (evt) {
+        const playerId = evt.item.dataset.playerId;
+        const player = players.find((p) => String(p.id) === playerId);
+        if (player) moverJogadorNoArray(player, matchFn, evt.newIndex);
+        renderSquad();
+      }
+    });
+  }
+
   function renderSquad() {
     const emVista = visiveis();
     const vendidos = players.filter((p) => p.estado === "sai");
@@ -1211,9 +1270,7 @@
       title.textContent = GROUP_LABELS[linha] + " (" + groupPlayers.length + ")";
       groupDiv.appendChild(title);
 
-      groupPlayers.forEach((player) => {
-        groupDiv.appendChild(renderPlayerRow(player));
-      });
+      renderGroupRows(groupDiv, groupPlayers, (p) => lineOf(p.posPrincipal) === linha);
 
       squadList.appendChild(groupDiv);
     });
@@ -1227,9 +1284,7 @@
       title.textContent = "Vendidos (" + vendidos.length + ")";
       groupDiv.appendChild(title);
 
-      vendidos.forEach((player) => {
-        groupDiv.appendChild(renderPlayerRow(player));
-      });
+      renderGroupRows(groupDiv, vendidos, (p) => p.estado === "sai");
 
       squadList.appendChild(groupDiv);
     }
@@ -1243,9 +1298,7 @@
       title.textContent = "Emprestados (" + emprestados.length + ")";
       groupDiv.appendChild(title);
 
-      emprestados.forEach((player) => {
-        groupDiv.appendChild(renderPlayerRow(player));
-      });
+      renderGroupRows(groupDiv, emprestados, (p) => p.estado === "emprestado");
 
       squadList.appendChild(groupDiv);
     }
@@ -1259,9 +1312,7 @@
       title.textContent = "Fora da análise (" + foraDaAnalise.length + ")";
       groupDiv.appendChild(title);
 
-      foraDaAnalise.forEach((player) => {
-        groupDiv.appendChild(renderPlayerRow(player));
-      });
+      renderGroupRows(groupDiv, foraDaAnalise, (p) => p.estado === "fora");
 
       squadList.appendChild(groupDiv);
     }
@@ -1271,46 +1322,60 @@
     renderCampo();
   }
 
+  function buildCampoZonaSpacer() {
+    const zona = document.createElement("div");
+    zona.className = "campo-zona campo-zona-spacer";
+    return zona;
+  }
+
   function buildCampoZona(code, sub) {
     const emAnalise = visiveis();
     const zona = document.createElement("div");
     zona.className = "campo-zona" + (sub ? " campo-zona-sub" : "");
-    zona.dataset.code = code;
 
     const label = document.createElement("div");
     label.className = "campo-zona-label";
     label.textContent = code;
     zona.appendChild(label);
 
+    const principaisWrap = document.createElement("div");
+    principaisWrap.className = "campo-zona-principais";
+    principaisWrap.dataset.code = code;
     emAnalise
       .filter((p) => p.posPrincipal === code)
-      .forEach((player) => zona.appendChild(renderCampoChip(player, false)));
+      .forEach((player) => principaisWrap.appendChild(renderCampoChip(player, false)));
+    zona.appendChild(principaisWrap);
+
+    const sortableOptions = {
+      animation: 150,
+      onEnd: function (evt) {
+        const destCode = evt.to.dataset.code;
+        const playerId = evt.item.dataset.playerId;
+        const player = players.find((p) => String(p.id) === playerId);
+        if (!player || !destCode) { renderSquad(); return; }
+        if (destCode !== player.posPrincipal) {
+          const anterior = player.posPrincipal;
+          player.posPrincipal = destCode;
+          if (!player.posSecundarias.includes(anterior)) {
+            player.posSecundarias.push(anterior);
+          }
+          player.posSecundarias = player.posSecundarias.filter((c) => c !== destCode);
+        }
+        moverJogadorNoArray(player, (p) => p.posPrincipal === destCode, evt.newIndex);
+        renderSquad();
+      }
+    };
+    if (!campoDetalhada) sortableOptions.group = "campoGroup";
+    Sortable.create(principaisWrap, sortableOptions);
 
     if (campoDetalhada) {
-      emAnalise
-        .filter((p) => p.posPrincipal !== code && p.posSecundarias.includes(code))
-        .forEach((player) => zona.appendChild(renderCampoChip(player, true)));
-    }
-
-    if (!campoDetalhada) {
-      Sortable.create(zona, {
-        group: "campoGroup",
-        animation: 150,
-        onEnd: function (evt) {
-          const destCode = evt.to.dataset.code;
-          const playerId = evt.item.dataset.playerId;
-          const player = players.find((p) => String(p.id) === playerId);
-          if (player && destCode && destCode !== player.posPrincipal) {
-            const anterior = player.posPrincipal;
-            player.posPrincipal = destCode;
-            if (!player.posSecundarias.includes(anterior)) {
-              player.posSecundarias.push(anterior);
-            }
-            player.posSecundarias = player.posSecundarias.filter((c) => c !== destCode);
-          }
-          renderSquad();
-        }
-      });
+      const secundarios = emAnalise.filter((p) => p.posPrincipal !== code && p.posSecundarias.includes(code));
+      if (secundarios.length > 0) {
+        const secundariasWrap = document.createElement("div");
+        secundariasWrap.className = "campo-zona-secundarias";
+        secundarios.forEach((player) => secundariasWrap.appendChild(renderCampoChip(player, true)));
+        zona.appendChild(secundariasWrap);
+      }
     }
 
     return zona;
@@ -1325,7 +1390,9 @@
       linhaDiv.className = "campo-linha" + (row.compact ? " compact" : "");
 
       row.codes.forEach((entry) => {
-        if (Array.isArray(entry)) {
+        if (entry === null) {
+          linhaDiv.appendChild(buildCampoZonaSpacer());
+        } else if (Array.isArray(entry)) {
           const stack = document.createElement("div");
           stack.className = "campo-zona-stack";
           entry.forEach((code) => stack.appendChild(buildCampoZona(code, true)));
@@ -1345,6 +1412,13 @@
       (isSecundaria ? " campo-chip-secundaria" : "") +
       (player.estado === "sai" ? " chip-sai" : player.estado === "entra" ? " chip-entra" : "");
     chip.dataset.playerId = String(player.id);
+
+    if (player.numero) {
+      const num = document.createElement("span");
+      num.className = "campo-numero";
+      num.textContent = player.numero;
+      chip.appendChild(num);
+    }
 
     if (player.photo) {
       const img = document.createElement("img");
@@ -1377,6 +1451,13 @@
     const linha = lineOf(player.posPrincipal);
     const row = document.createElement("div");
     row.className = "player";
+    row.dataset.playerId = String(player.id);
+
+    const handle = document.createElement("span");
+    handle.className = "drag-handle";
+    handle.textContent = "⠿";
+    handle.title = "Arrastar para reordenar";
+    row.appendChild(handle);
 
     if (player.photo) {
       const img = document.createElement("img");
@@ -1406,20 +1487,21 @@
     nameInput.addEventListener("input", () => { player.name = nameInput.value; });
     fields.appendChild(nameInput);
 
-    if (!player.isReforco) {
-      const ageWrap = document.createElement("span");
-      ageWrap.className = "age-wrap";
-      ageWrap.appendChild(document.createTextNode("("));
-      const ageInput = document.createElement("input");
-      ageInput.type = "number";
-      ageInput.min = "14";
-      ageInput.max = "60";
-      ageInput.value = player.age != null ? player.age : "";
-      ageInput.addEventListener("input", () => { player.age = ageInput.value; });
-      ageWrap.appendChild(ageInput);
-      ageWrap.appendChild(document.createTextNode(")"));
-      fields.appendChild(ageWrap);
-    }
+    const numeroWrap = document.createElement("span");
+    numeroWrap.className = "numero-wrap";
+    numeroWrap.appendChild(document.createTextNode("#"));
+    const numeroInput = document.createElement("input");
+    numeroInput.type = "number";
+    numeroInput.min = "1";
+    numeroInput.max = "99";
+    numeroInput.placeholder = "nº";
+    numeroInput.value = player.numero != null ? player.numero : "";
+    numeroInput.addEventListener("input", () => {
+      player.numero = numeroInput.value;
+      renderCampo();
+    });
+    numeroWrap.appendChild(numeroInput);
+    fields.appendChild(numeroWrap);
 
     const badge = document.createElement("span");
     badge.className = "badge " + linha.toLowerCase();
@@ -1733,6 +1815,7 @@
     const emVista = visiveis();
     const saem = players.filter((p) => p.estado === "sai");
     const entram = players.filter((p) => p.estado === "entra");
+    const corDestaque = getComputedStyle(document.documentElement).getPropertyValue("--brass").trim() || "#B8955A";
 
     const fotosCache = {};
     const logoSrc = squadClubLogo.style.visibility !== "hidden" && squadClubLogo.src ? await imageToDataURL(squadClubLogo.src) : null;
@@ -1780,6 +1863,39 @@
     const pitch = document.createElement("div");
     pitch.style.cssText = "background:linear-gradient(180deg, #1F6F45, #123B26); border-radius:10px; padding:10px; display:flex; flex-direction:column-reverse; gap:4px;";
 
+    function buildExportChip(player, isSecundaria) {
+      const chip = document.createElement("div");
+      chip.style.cssText = "background:#F0F2F4; color:#1C242B; border-radius:5px; padding:2px 4px; display:flex; align-items:center; gap:3px; font-size:" + (isSecundaria ? "9px" : "10px") + "; opacity:" + (isSecundaria ? "0.55" : "1") + "; border-left:3px solid " +
+        (isSecundaria ? corDestaque : player.estado === "entra" ? "#1F7A50" : "transparent") + ";" +
+        (isSecundaria ? " border-left-style:dashed;" : "");
+
+      if (player.numero) {
+        const num = document.createElement("span");
+        num.style.cssText = "font-family:'IBM Plex Mono', monospace; font-size:8px; font-weight:600; color:" + corDestaque + "; flex-shrink:0;";
+        num.textContent = player.numero;
+        chip.appendChild(num);
+      }
+
+      if (player.photo && fotosCache[player.photo]) {
+        const img = document.createElement("img");
+        img.src = fotosCache[player.photo];
+        img.style.cssText = "width:" + (isSecundaria ? "13px" : "16px") + "; height:" + (isSecundaria ? "13px" : "16px") + "; border-radius:50%; object-fit:cover; flex-shrink:0;";
+        chip.appendChild(img);
+      } else {
+        const ph = document.createElement("div");
+        ph.style.cssText = "width:" + (isSecundaria ? "13px" : "16px") + "; height:" + (isSecundaria ? "13px" : "16px") + "; border-radius:50%; background:#C7CFD6; color:#1C242B; display:flex; align-items:center; justify-content:center; font-size:7px; font-weight:700; flex-shrink:0;";
+        ph.textContent = initials(player.name);
+        chip.appendChild(ph);
+      }
+
+      const nome = document.createElement("span");
+      nome.style.cssText = "overflow:hidden; text-overflow:ellipsis; white-space:nowrap;";
+      nome.textContent = player.name;
+      chip.appendChild(nome);
+
+      return chip;
+    }
+
     function buildExportZona(code, sub) {
       const zona = document.createElement("div");
       zona.style.cssText = "flex:1; min-height:" + (sub ? "27px" : "56px") + "; border:1px dashed rgba(255,255,255,0.35); border-radius:6px; padding:3px; display:flex; flex-direction:column; gap:3px;";
@@ -1790,30 +1906,21 @@
       zona.appendChild(label);
 
       emVista.filter((p) => p.posPrincipal === code).forEach((player) => {
-        const chip = document.createElement("div");
-        chip.style.cssText = "background:#F0F2F4; color:#1C242B; border-radius:5px; padding:2px 4px; display:flex; align-items:center; gap:3px; font-size:10px; border-left:3px solid " +
-          (player.estado === "entra" ? "#1F7A50" : "transparent") + ";";
-
-        if (player.photo && fotosCache[player.photo]) {
-          const img = document.createElement("img");
-          img.src = fotosCache[player.photo];
-          img.style.cssText = "width:16px; height:16px; border-radius:50%; object-fit:cover; flex-shrink:0;";
-          chip.appendChild(img);
-        } else {
-          const ph = document.createElement("div");
-          ph.style.cssText = "width:16px; height:16px; border-radius:50%; background:#C7CFD6; color:#1C242B; display:flex; align-items:center; justify-content:center; font-size:7px; font-weight:700; flex-shrink:0;";
-          ph.textContent = initials(player.name);
-          chip.appendChild(ph);
-        }
-
-        const nome = document.createElement("span");
-        nome.style.cssText = "overflow:hidden; text-overflow:ellipsis; white-space:nowrap;";
-        nome.textContent = player.name;
-        chip.appendChild(nome);
-
-        zona.appendChild(chip);
+        zona.appendChild(buildExportChip(player, false));
       });
 
+      if (campoDetalhada) {
+        emVista.filter((p) => p.posPrincipal !== code && p.posSecundarias.includes(code)).forEach((player) => {
+          zona.appendChild(buildExportChip(player, true));
+        });
+      }
+
+      return zona;
+    }
+
+    function buildExportZonaSpacer() {
+      const zona = document.createElement("div");
+      zona.style.cssText = "flex:1;";
       return zona;
     }
 
@@ -1822,7 +1929,9 @@
       linhaDiv.style.cssText = "display:flex; gap:4px;" + (row.compact ? " justify-content:center;" : "");
 
       row.codes.forEach((entry) => {
-        if (Array.isArray(entry)) {
+        if (entry === null) {
+          linhaDiv.appendChild(buildExportZonaSpacer());
+        } else if (Array.isArray(entry)) {
           const stack = document.createElement("div");
           stack.style.cssText = "flex:1; display:flex; flex-direction:column; gap:3px;";
           entry.forEach((code) => stack.appendChild(buildExportZona(code, true)));
@@ -1837,8 +1946,6 @@
       pitch.appendChild(linhaDiv);
     });
     container.appendChild(pitch);
-
-    const corDestaque = getComputedStyle(document.documentElement).getPropertyValue("--brass").trim() || "#B8955A";
 
     const listas = document.createElement("div");
     listas.style.cssText = "display:flex; gap:16px; margin-top:14px;";
