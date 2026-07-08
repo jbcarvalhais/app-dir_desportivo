@@ -6,6 +6,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8080"],
       "port": 8080
+    },
+    {
+      "name": "static-ps",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "C:\\Apps\\dir_desportivo\\.claude\\static-server.ps1", "-Port", "8080", "-Root", "C:\\Apps\\dir_desportivo"],
+      "port": 8080
     }
   ]
 }

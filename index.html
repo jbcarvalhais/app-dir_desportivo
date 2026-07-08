@@ -310,6 +310,7 @@
   .pill.active { color: var(--text); border-color: transparent; }
   .pill.active.fica { background: var(--neutral-fill); }
   .pill.active.sai { background: var(--signal-red-fill); }
+  .pill.active.emprestado { background: var(--neutral-fill); }
   .pill.active.fora { background: var(--neutral-fill); }
   .pills { display: flex; gap: 4px; }
 
@@ -332,7 +333,7 @@
   }
   .remove-link:hover { background: none; color: var(--signal-red-fill); }
 
-  .fora-group .player, .vendidos-group .player { opacity: 0.7; }
+  .fora-group .player, .vendidos-group .player, .emprestados-group .player { opacity: 0.7; }
 
   .reforco-form {
     display: flex;
@@ -354,6 +355,29 @@
     font-size: 0.95rem;
     background: var(--card);
     color: var(--text);
+  }
+
+  .ganhos-extra-list {
+    margin-top: 10px;
+  }
+  .ganho-extra-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-top: 6px;
+    font-size: 0.88rem;
+  }
+  .ganho-extra-item .ganho-descricao {
+    flex: 1;
+  }
+  .ganho-extra-item .ganho-valor {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--signal-green);
   }
 
   .secundarias-text {
@@ -446,6 +470,13 @@
     display: flex;
     gap: 4px;
   }
+  .campo-linha.compact {
+    justify-content: center;
+  }
+  .campo-linha.compact .campo-zona {
+    flex: 0 1 110px;
+    min-height: 44px;
+  }
   .campo-zona {
     flex: 1;
     min-height: 62px;
@@ -455,6 +486,19 @@
     display: flex;
     flex-direction: column;
     gap: 3px;
+  }
+  .campo-zona-stack {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .campo-zona-stack .campo-zona {
+    flex: 1;
+    min-height: 29px;
+  }
+  .campo-zona-stack .campo-zona .campo-zona-label {
+    font-size: 0.52rem;
   }
   .campo-zona-label {
     font-family: var(--font-display);
@@ -498,6 +542,48 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .campo-chip-secundaria {
+    opacity: 0.55;
+    transform: scale(0.9);
+    transform-origin: left center;
+    border-left: 2px dashed var(--brass) !important;
+  }
+  .campo-chip-secundaria .campo-avatar,
+  .campo-chip-secundaria .campo-avatar-placeholder {
+    width: 14px;
+    height: 14px;
+  }
+  .campo-chip-secundaria .campo-nome {
+    font-size: 0.6rem;
+  }
+  .campo-container.campo-detalhada .campo-chip {
+    cursor: default;
+  }
+
+  .campo-subtabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .campo-subtab {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    font-size: 0.82rem;
+    border-radius: 20px;
+  }
+  .campo-subtab.active {
+    background: rgba(var(--brass-rgb), 0.16);
+    color: var(--brass-2);
+    border-color: var(--brass);
+    font-weight: 600;
+  }
+  .campo-subtab-hint {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin: 0 0 8px;
   }
 </style>
 </head>
@@ -550,6 +636,7 @@
     <p class="status" id="squadStatus"></p>
     <div class="row">
       <button class="secondary" id="toggleReforcoBtn">+ Adicionar reforço</button>
+      <button class="secondary" id="toggleGanhoBtn">+ Adicionar ganho extra</button>
     </div>
     <div class="reforco-form hidden" id="reforcoForm">
       <div><input type="text" id="reforcoNome" placeholder="Nome do reforço"></div>
@@ -559,6 +646,12 @@
       <div><input type="number" id="reforcoValor" placeholder="Valor (M€)" min="0" step="0.1"></div>
       <button id="confirmReforcoBtn">Adicionar</button>
     </div>
+    <div class="reforco-form hidden" id="ganhoForm">
+      <div><input type="text" id="ganhoDescricao" placeholder="Descrição (ex.: Cláusula de venda — Nome)"></div>
+      <div><input type="number" id="ganhoValor" placeholder="Valor (M€)" min="0" step="0.1"></div>
+      <button id="confirmGanhoBtn">Adicionar</button>
+    </div>
+    <div id="ganhosExtraList" class="ganhos-extra-list"></div>
 
     <div class="view-tabs">
       <button class="view-tab active" id="tabListaBtn">Lista</button>
@@ -567,7 +660,14 @@
     </div>
 
     <div id="squadList"></div>
-    <div id="campoContainer" class="campo-container hidden"></div>
+    <div id="campoWrap" class="hidden">
+      <div class="campo-subtabs">
+        <button type="button" class="campo-subtab active" id="campoSimplesBtn">Vista simples</button>
+        <button type="button" class="campo-subtab" id="campoDetalhadaBtn">Vista detalhada</button>
+      </div>
+      <p class="campo-subtab-hint" id="campoSubtabHint">Arrasta os jogadores entre posições. A posição de origem passa a secundária.</p>
+      <div id="campoContainer" class="campo-container"></div>
+    </div>
   </section>
 
 </main>
@@ -607,12 +707,12 @@
   }
 
   const FIELD_ROWS = [
-    { label: "Guarda-redes", codes: ["GK"] },
-    { label: "Defesas", codes: ["LWB", "LB", "LCB", "CCB", "RCB", "RB", "RWB"] },
+    { label: "Guarda-redes", codes: ["GK"], compact: true },
+    { label: "Defesas", codes: [["LWB", "LB"], "LCB", "CCB", "RCB", ["RWB", "RB"]] },
     { label: "Médios defensivos", codes: ["LCDM", "CCDM", "RCDM"] },
     { label: "Médios", codes: ["LM", "LCM", "CCM", "RCM", "RM"] },
-    { label: "Médios ofensivos", codes: ["LCAM", "CCAM", "RCAM"] },
-    { label: "Avançados", codes: ["LW", "LST", "CST", "RST", "RW"] }
+    { label: "Médios ofensivos", codes: ["LW", "LCAM", "CCAM", "RCAM", "RW"] },
+    { label: "Avançados", codes: ["LST", "CST", "RST"] }
   ];
 
   function positionSelectHTML(selected) {
@@ -625,6 +725,7 @@
 
   let players = [];
   let openEditorId = null;
+  let extraGanhos = [];
 
   const keyBlock = document.getElementById("keyBlock");
   const searchBlock = document.getElementById("searchBlock");
@@ -640,9 +741,14 @@
   const squadClubLogo = document.getElementById("squadClubLogo");
   const squadStatus = document.getElementById("squadStatus");
   const squadList = document.getElementById("squadList");
+  const campoWrap = document.getElementById("campoWrap");
   const campoContainer = document.getElementById("campoContainer");
+  const campoSimplesBtn = document.getElementById("campoSimplesBtn");
+  const campoDetalhadaBtn = document.getElementById("campoDetalhadaBtn");
+  const campoSubtabHint = document.getElementById("campoSubtabHint");
   const tabListaBtn = document.getElementById("tabListaBtn");
   const tabCampoBtn = document.getElementById("tabCampoBtn");
+  let campoDetalhada = false;
   const saldoValue = document.getElementById("saldoValue");
   const toggleReforcoBtn = document.getElementById("toggleReforcoBtn");
   const reforcoForm = document.getElementById("reforcoForm");
@@ -650,6 +756,11 @@
   const reforcoPosicao = document.getElementById("reforcoPosicao");
   const reforcoValor = document.getElementById("reforcoValor");
   reforcoPosicao.innerHTML = positionSelectHTML("CCB");
+  const toggleGanhoBtn = document.getElementById("toggleGanhoBtn");
+  const ganhoForm = document.getElementById("ganhoForm");
+  const ganhoDescricao = document.getElementById("ganhoDescricao");
+  const ganhoValor = document.getElementById("ganhoValor");
+  const ganhosExtraList = document.getElementById("ganhosExtraList");
 
   function getKey() {
     return localStorage.getItem(KEY_STORAGE);
@@ -716,6 +827,7 @@
   document.getElementById("backToSearchBtn").addEventListener("click", () => {
     squadList.innerHTML = "";
     players = [];
+    extraGanhos = [];
     showSearchScreen();
   });
 
@@ -798,15 +910,28 @@
     tabListaBtn.classList.add("active");
     tabCampoBtn.classList.remove("active");
     squadList.classList.remove("hidden");
-    campoContainer.classList.add("hidden");
+    campoWrap.classList.add("hidden");
   });
 
   tabCampoBtn.addEventListener("click", () => {
     tabCampoBtn.classList.add("active");
     tabListaBtn.classList.remove("active");
-    campoContainer.classList.remove("hidden");
+    campoWrap.classList.remove("hidden");
     squadList.classList.add("hidden");
   });
+
+  function setCampoDetalhada(valor) {
+    campoDetalhada = valor;
+    campoSimplesBtn.classList.toggle("active", !valor);
+    campoDetalhadaBtn.classList.toggle("active", valor);
+    campoSubtabHint.textContent = valor
+      ? "Mostra também as posições secundárias de cada jogador. Não é possível arrastar nesta vista."
+      : "Arrasta os jogadores entre posições. A posição de origem passa a secundária.";
+    renderCampo();
+  }
+
+  campoSimplesBtn.addEventListener("click", () => setCampoDetalhada(false));
+  campoDetalhadaBtn.addEventListener("click", () => setCampoDetalhada(true));
 
   toggleReforcoBtn.addEventListener("click", () => {
     reforcoForm.classList.toggle("hidden");
@@ -841,8 +966,59 @@
     renderSquad();
   });
 
+  toggleGanhoBtn.addEventListener("click", () => {
+    ganhoForm.classList.toggle("hidden");
+  });
+
+  document.getElementById("confirmGanhoBtn").addEventListener("click", () => {
+    const descricao = ganhoDescricao.value.trim();
+    const valor = parseFloat(ganhoValor.value);
+    if (!descricao) {
+      alert("Escreve uma descrição para o ganho extra.");
+      return;
+    }
+    if (isNaN(valor) || valor < 0) {
+      alert("Introduz um valor válido para o ganho extra.");
+      return;
+    }
+    extraGanhos.push({ id: "ganho-" + Date.now(), descricao: descricao, valor: valor });
+    ganhoDescricao.value = "";
+    ganhoValor.value = "";
+    ganhoForm.classList.add("hidden");
+    renderSquad();
+  });
+
+  function renderGanhosExtra() {
+    ganhosExtraList.innerHTML = "";
+    extraGanhos.forEach((ganho) => {
+      const item = document.createElement("div");
+      item.className = "ganho-extra-item";
+
+      const desc = document.createElement("span");
+      desc.className = "ganho-descricao";
+      desc.textContent = ganho.descricao;
+      item.appendChild(desc);
+
+      const valor = document.createElement("span");
+      valor.className = "ganho-valor";
+      valor.textContent = "+" + parseFloat(ganho.valor).toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€";
+      item.appendChild(valor);
+
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "remove-link";
+      removeBtn.textContent = "Remover";
+      removeBtn.addEventListener("click", () => {
+        extraGanhos = extraGanhos.filter((g) => g !== ganho);
+        renderSquad();
+      });
+      item.appendChild(removeBtn);
+
+      ganhosExtraList.appendChild(item);
+    });
+  }
+
   function computeSaldo() {
-    return players.reduce((total, p) => {
+    const totalJogadores = players.reduce((total, p) => {
       if (p.estado === "sai") {
         const valor = parseFloat(p.valor) || 0;
         const pct = p.clubPct != null ? parseFloat(p.clubPct) : 100;
@@ -854,6 +1030,8 @@
       }
       return total;
     }, 0);
+    const totalGanhosExtra = extraGanhos.reduce((total, g) => total + (parseFloat(g.valor) || 0), 0);
+    return totalJogadores + totalGanhosExtra;
   }
 
   function updateSaldoDisplay() {
@@ -877,15 +1055,17 @@
   }
 
   function visiveis() {
-    return players.filter((p) => p.estado !== "fora" && p.estado !== "sai");
+    return players.filter((p) => p.estado !== "fora" && p.estado !== "sai" && p.estado !== "emprestado");
   }
 
   function renderSquad() {
     const emVista = visiveis();
     const vendidos = players.filter((p) => p.estado === "sai");
+    const emprestados = players.filter((p) => p.estado === "emprestado");
     const foraDaAnalise = players.filter((p) => p.estado === "fora");
     squadStatus.textContent = emVista.length + " jogadores em análise" +
       (vendidos.length > 0 ? " · " + vendidos.length + " vendidos" : "") +
+      (emprestados.length > 0 ? " · " + emprestados.length + " emprestados" : "") +
       (foraDaAnalise.length > 0 ? " · " + foraDaAnalise.length + " fora da análise" : "") + ".";
     squadList.innerHTML = "";
 
@@ -924,6 +1104,22 @@
       squadList.appendChild(groupDiv);
     }
 
+    if (emprestados.length > 0) {
+      const groupDiv = document.createElement("div");
+      groupDiv.className = "group emprestados-group";
+
+      const title = document.createElement("p");
+      title.className = "group-title";
+      title.textContent = "Emprestados (" + emprestados.length + ")";
+      groupDiv.appendChild(title);
+
+      emprestados.forEach((player) => {
+        groupDiv.appendChild(renderPlayerRow(player));
+      });
+
+      squadList.appendChild(groupDiv);
+    }
+
     if (foraDaAnalise.length > 0) {
       const groupDiv = document.createElement("div");
       groupDiv.className = "group fora-group";
@@ -940,57 +1136,84 @@
       squadList.appendChild(groupDiv);
     }
 
+    renderGanhosExtra();
     updateSaldoDisplay();
     renderCampo();
   }
 
-  function renderCampo() {
+  function buildCampoZona(code, sub) {
     const emAnalise = visiveis();
+    const zona = document.createElement("div");
+    zona.className = "campo-zona" + (sub ? " campo-zona-sub" : "");
+    zona.dataset.code = code;
+
+    const label = document.createElement("div");
+    label.className = "campo-zona-label";
+    label.textContent = code;
+    zona.appendChild(label);
+
+    emAnalise
+      .filter((p) => p.posPrincipal === code)
+      .forEach((player) => zona.appendChild(renderCampoChip(player, false)));
+
+    if (campoDetalhada) {
+      emAnalise
+        .filter((p) => p.posPrincipal !== code && p.posSecundarias.includes(code))
+        .forEach((player) => zona.appendChild(renderCampoChip(player, true)));
+    }
+
+    if (!campoDetalhada) {
+      Sortable.create(zona, {
+        group: "campoGroup",
+        animation: 150,
+        onEnd: function (evt) {
+          const destCode = evt.to.dataset.code;
+          const playerId = evt.item.dataset.playerId;
+          const player = players.find((p) => String(p.id) === playerId);
+          if (player && destCode && destCode !== player.posPrincipal) {
+            const anterior = player.posPrincipal;
+            player.posPrincipal = destCode;
+            if (!player.posSecundarias.includes(anterior)) {
+              player.posSecundarias.push(anterior);
+            }
+            player.posSecundarias = player.posSecundarias.filter((c) => c !== destCode);
+          }
+          renderSquad();
+        }
+      });
+    }
+
+    return zona;
+  }
+
+  function renderCampo() {
     campoContainer.innerHTML = "";
+    campoContainer.classList.toggle("campo-detalhada", campoDetalhada);
 
     FIELD_ROWS.forEach((row) => {
       const linhaDiv = document.createElement("div");
-      linhaDiv.className = "campo-linha";
+      linhaDiv.className = "campo-linha" + (row.compact ? " compact" : "");
 
-      row.codes.forEach((code) => {
-        const zona = document.createElement("div");
-        zona.className = "campo-zona";
-        zona.dataset.code = code;
-
-        const label = document.createElement("div");
-        label.className = "campo-zona-label";
-        label.textContent = code;
-        zona.appendChild(label);
-
-        emAnalise
-          .filter((p) => p.posPrincipal === code)
-          .forEach((player) => zona.appendChild(renderCampoChip(player)));
-
-        linhaDiv.appendChild(zona);
-
-        Sortable.create(zona, {
-          group: "campoGroup",
-          animation: 150,
-          onEnd: function (evt) {
-            const destCode = evt.to.dataset.code;
-            const playerId = evt.item.dataset.playerId;
-            const player = players.find((p) => String(p.id) === playerId);
-            if (player && destCode) {
-              player.posPrincipal = destCode;
-              player.posSecundarias = player.posSecundarias.filter((c) => c !== destCode);
-            }
-            renderSquad();
-          }
-        });
+      row.codes.forEach((entry) => {
+        if (Array.isArray(entry)) {
+          const stack = document.createElement("div");
+          stack.className = "campo-zona-stack";
+          entry.forEach((code) => stack.appendChild(buildCampoZona(code, true)));
+          linhaDiv.appendChild(stack);
+        } else {
+          linhaDiv.appendChild(buildCampoZona(entry, false));
+        }
       });
 
       campoContainer.appendChild(linhaDiv);
     });
   }
 
-  function renderCampoChip(player) {
+  function renderCampoChip(player, isSecundaria) {
     const chip = document.createElement("div");
-    chip.className = "campo-chip" + (player.estado === "sai" ? " chip-sai" : player.estado === "entra" ? " chip-entra" : "");
+    chip.className = "campo-chip" +
+      (isSecundaria ? " campo-chip-secundaria" : "") +
+      (player.estado === "sai" ? " chip-sai" : player.estado === "entra" ? " chip-entra" : "");
     chip.dataset.playerId = String(player.id);
 
     if (player.photo) {
@@ -1110,7 +1333,7 @@
       if (player.estado === "sai") {
         fields.appendChild(renderValorField(player, "sai"));
       }
-      if (player.estado === "fora") {
+      if (player.estado === "fora" || player.estado === "emprestado") {
         const restoreBtn = document.createElement("button");
         restoreBtn.className = "remove-link";
         restoreBtn.textContent = "Repor";
@@ -1210,6 +1433,7 @@
     const opcoes = [
       { estado: "fica", label: "Fica" },
       { estado: "sai", label: "Sai" },
+      { estado: "emprestado", label: "Empréstimo" },
       { estado: "fora", label: "Fora" }
     ];
     opcoes.forEach((op) => {
@@ -1318,6 +1542,39 @@
     return box;
   }
 
+  function construirListaGanhosExtra(titulo, lista) {
+    const box = document.createElement("div");
+    box.style.cssText = "flex:1; background:#1D2C39; border-radius:8px; padding:10px; font-size:11px; font-family:'IBM Plex Sans', Arial, sans-serif; color:#EAEDEF;";
+
+    const titleEl = document.createElement("div");
+    titleEl.style.cssText = "font-family:'Big Shoulders Display', Arial, sans-serif; font-weight:700; font-size:13px; letter-spacing:0.03em; text-transform:uppercase; margin-bottom:6px; color:#B8955A;";
+    titleEl.textContent = titulo;
+    box.appendChild(titleEl);
+
+    if (lista.length === 0) {
+      const vazio = document.createElement("div");
+      vazio.style.cssText = "color:#8A9BA8;";
+      vazio.textContent = "Nenhum";
+      box.appendChild(vazio);
+    }
+
+    lista.forEach((g) => {
+      const linha = document.createElement("div");
+      linha.style.cssText = "display:flex; justify-content:space-between; gap:8px; padding:3px 0; border-bottom:1px solid #24343F;";
+      const desc = document.createElement("span");
+      desc.textContent = g.descricao;
+      const valorTxt = document.createElement("span");
+      valorTxt.style.cssText = "white-space:nowrap; font-family:'IBM Plex Mono', monospace;";
+      const valor = parseFloat(g.valor) || 0;
+      valorTxt.textContent = "+" + valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€";
+      linha.appendChild(desc);
+      linha.appendChild(valorTxt);
+      box.appendChild(linha);
+    });
+
+    return box;
+  }
+
   async function construirTemplateExportacao() {
     const emVista = visiveis();
     const saem = players.filter((p) => p.estado === "sai");
@@ -1369,45 +1626,58 @@
     const pitch = document.createElement("div");
     pitch.style.cssText = "background:linear-gradient(180deg, #1F6F45, #123B26); border-radius:10px; padding:10px; display:flex; flex-direction:column-reverse; gap:4px;";
 
+    function buildExportZona(code, sub) {
+      const zona = document.createElement("div");
+      zona.style.cssText = "flex:1; min-height:" + (sub ? "27px" : "56px") + "; border:1px dashed rgba(255,255,255,0.35); border-radius:6px; padding:3px; display:flex; flex-direction:column; gap:3px;";
+
+      const label = document.createElement("div");
+      label.style.cssText = "font-family:'Big Shoulders Display', Arial, sans-serif; font-size:" + (sub ? "7px" : "9px") + "; color:rgba(255,255,255,0.85); text-align:center; font-weight:700;";
+      label.textContent = code;
+      zona.appendChild(label);
+
+      emVista.filter((p) => p.posPrincipal === code).forEach((player) => {
+        const chip = document.createElement("div");
+        chip.style.cssText = "background:#F0F2F4; color:#1C242B; border-radius:5px; padding:2px 4px; display:flex; align-items:center; gap:3px; font-size:10px; border-left:3px solid " +
+          (player.estado === "entra" ? "#1F7A50" : "transparent") + ";";
+
+        if (player.photo && fotosCache[player.photo]) {
+          const img = document.createElement("img");
+          img.src = fotosCache[player.photo];
+          img.style.cssText = "width:16px; height:16px; border-radius:50%; object-fit:cover; flex-shrink:0;";
+          chip.appendChild(img);
+        } else {
+          const ph = document.createElement("div");
+          ph.style.cssText = "width:16px; height:16px; border-radius:50%; background:#C7CFD6; color:#1C242B; display:flex; align-items:center; justify-content:center; font-size:7px; font-weight:700; flex-shrink:0;";
+          ph.textContent = initials(player.name);
+          chip.appendChild(ph);
+        }
+
+        const nome = document.createElement("span");
+        nome.style.cssText = "overflow:hidden; text-overflow:ellipsis; white-space:nowrap;";
+        nome.textContent = player.name;
+        chip.appendChild(nome);
+
+        zona.appendChild(chip);
+      });
+
+      return zona;
+    }
+
     FIELD_ROWS.forEach((row) => {
       const linhaDiv = document.createElement("div");
-      linhaDiv.style.cssText = "display:flex; gap:4px;";
+      linhaDiv.style.cssText = "display:flex; gap:4px;" + (row.compact ? " justify-content:center;" : "");
 
-      row.codes.forEach((code) => {
-        const zona = document.createElement("div");
-        zona.style.cssText = "flex:1; min-height:56px; border:1px dashed rgba(255,255,255,0.35); border-radius:6px; padding:3px; display:flex; flex-direction:column; gap:3px;";
-
-        const label = document.createElement("div");
-        label.style.cssText = "font-family:'Big Shoulders Display', Arial, sans-serif; font-size:9px; color:rgba(255,255,255,0.85); text-align:center; font-weight:700;";
-        label.textContent = code;
-        zona.appendChild(label);
-
-        emVista.filter((p) => p.posPrincipal === code).forEach((player) => {
-          const chip = document.createElement("div");
-          chip.style.cssText = "background:#F0F2F4; color:#1C242B; border-radius:5px; padding:2px 4px; display:flex; align-items:center; gap:3px; font-size:10px; border-left:3px solid " +
-            (player.estado === "entra" ? "#1F7A50" : "transparent") + ";";
-
-          if (player.photo && fotosCache[player.photo]) {
-            const img = document.createElement("img");
-            img.src = fotosCache[player.photo];
-            img.style.cssText = "width:16px; height:16px; border-radius:50%; object-fit:cover; flex-shrink:0;";
-            chip.appendChild(img);
-          } else {
-            const ph = document.createElement("div");
-            ph.style.cssText = "width:16px; height:16px; border-radius:50%; background:#C7CFD6; color:#1C242B; display:flex; align-items:center; justify-content:center; font-size:7px; font-weight:700; flex-shrink:0;";
-            ph.textContent = initials(player.name);
-            chip.appendChild(ph);
-          }
-
-          const nome = document.createElement("span");
-          nome.style.cssText = "overflow:hidden; text-overflow:ellipsis; white-space:nowrap;";
-          nome.textContent = player.name;
-          chip.appendChild(nome);
-
-          zona.appendChild(chip);
-        });
-
-        linhaDiv.appendChild(zona);
+      row.codes.forEach((entry) => {
+        if (Array.isArray(entry)) {
+          const stack = document.createElement("div");
+          stack.style.cssText = "flex:1; display:flex; flex-direction:column; gap:3px;";
+          entry.forEach((code) => stack.appendChild(buildExportZona(code, true)));
+          linhaDiv.appendChild(stack);
+        } else {
+          const zona = buildExportZona(entry, false);
+          if (row.compact) zona.style.flex = "0 1 100px";
+          linhaDiv.appendChild(zona);
+        }
       });
 
       pitch.appendChild(linhaDiv);
@@ -1418,6 +1688,7 @@
     listas.style.cssText = "display:flex; gap:16px; margin-top:14px;";
     listas.appendChild(construirListaTransferencias("Saem", saem, "sai"));
     listas.appendChild(construirListaTransferencias("Entram", entram, "entra"));
+    listas.appendChild(construirListaGanhosExtra("Outros ganhos", extraGanhos));
     container.appendChild(listas);
 
     return container;
