@@ -21,6 +21,7 @@ Direção "sala de reuniões do clube": visual escuro e sóbrio, inspirado nas g
 - **Tipografia** (Google Fonts via CDN): "Big Shoulders Display" (condensada, tipo placar de estádio) para títulos, nome do clube e cabeçalhos; "IBM Plex Sans" para todo o texto de interface; "IBM Plex Mono" para números (saldo, valores), sempre com `font-variant-numeric: tabular-nums`.
 - **Layout:** cabeçalho do plantel ("masthead") junta o escudo do clube (vindo da API-Football) + nome + saldo em destaque, em vez de elementos separados.
 - Esta identidade aplica-se a toda a app, incluindo a imagem exportada (mesmo cabeçalho, cores e tipografia).
+- **Cor do clube (decisão do utilizador a 2026-07-09):** seletor de cor nativo no topo do plantel substitui `--brass` pela cor escolhida (ex.: verde do Sporting), em toda a app e na imagem exportada — exceto o relvado do Campo (sempre verde) e os estados semânticos Sai/Entra (sempre vermelho/verde). O contraste do texto sobre a cor de destaque é calculado automaticamente (luminância) para nunca ficar ilegível. Reposta ao dourado por defeito sempre que se procura um clube novo; fica guardada como parte do ficheiro de análise (ver "Guardar/carregar análise").
 
 ## Princípios centrais
 - **"Tudo o que vem da API é semente, tudo é editável"**: os dados importados (nome, foto, idade, posição) são só ponto de partida. O utilizador edita tudo depois.
@@ -65,8 +66,11 @@ Decisão do utilizador a 2026-07-08: além dos estados por jogador, existe uma l
   - Layout por linhas (revisto a 2026-07-08 para reduzir sobrecarga visual): Guarda-redes (1 zona, mais pequena e centrada em vez de ocupar a linha toda), Defesas (LB+LWB e RB+RWB empilhados no espaço de um Central, LCB, CCB, RCB — 5 "slots" de largura), Médios defensivos (3), Médios (5), Médios ofensivos (LW, LCAM, CCAM, RCAM, RW), Avançados (LST, CST, RST). Zonas ordenadas da esquerda para a direita, para que os trios L/C/R se definam pela zona onde o jogador é largado. Orientação: guarda-redes no fundo, avançados no topo.
 
 ## Partilha
-- Imagem: PNG com cabeçalho (nome do clube + saldo), o campo (só Fica/Entra, vista simples) e, por baixo, três listas compactas "Saem", "Entram" e "Outros ganhos" com valores associados (3ª lista acrescentada a 2026-07-08, para o saldo bater sempre certo com o que se vê na imagem). Fotos convertidas para data URL antes da exportação (contorna CORS do CDN); se uma foto falhar, usa iniciais em vez de bloquear a exportação toda.
+- Imagem: PNG com cabeçalho (nome do clube + saldo), o campo (só Fica/Entra, vista simples) e, por baixo, três listas compactas "Saem", "Entram" e "Outros ganhos" com valores associados e uma **linha de total por lista** (acrescentada a 2026-07-09, para o saldo bater sempre certo com o que se vê na imagem). Fotos convertidas para data URL antes da exportação (contorna CORS do CDN); se uma foto falhar, usa iniciais em vez de bloquear a exportação toda.
 - Link: **adiado para o backlog** (decisão do utilizador a 2026-07-07 — não faz sentido para já). Retomar só se pedido explicitamente.
+
+## Guardar/carregar análise (decisão do utilizador a 2026-07-09)
+Botão "Guardar análise" descarrega um `.json` local com todo o estado do cenário: jogadores (estado, posições, valores), outros ganhos, nome/escudo do clube e cor de destaque escolhida. Botão "Carregar análise guardada" (no ecrã de procurar clube) lê esse ficheiro e repõe o cenário exatamente como estava — sem nenhuma chamada à API-Football, poupando o limite diário de pedidos. Pensado para continuar uma análise noutro dia ou computador sem reimportar o plantel.
 
 ## Ordem de construção (um entregável de cada vez)
 1. Importar (chave + procurar clube + buscar plantel) → vista de lista editável, agrupada por linha, com placeholder de iniciais e idade inline. ✅
@@ -77,6 +81,7 @@ Decisão do utilizador a 2026-07-08: além dos estados por jogador, existe uma l
 6. Exportar imagem. ✅ (MVP core está completo)
 7. Vista de campo: vista simples vs. detalhada (posições secundárias em duplicado), drag-and-drop com posição anterior a passar a secundária, e reorganização das linhas do campo. ✅
 8. Estado "Empréstimo" (sem custos) e secção "Outros ganhos" (entradas manuais de dinheiro não ligado a jogadores do plantel). ✅
+9. Guardar/carregar análise em ficheiro local, cor do clube personalizável, e totais por categoria na imagem exportada. ✅
 
 ## Riscos conhecidos
 - Plantel importado reflete a época terminada, não as transferências do mês corrente — o utilizador corrige à mão.

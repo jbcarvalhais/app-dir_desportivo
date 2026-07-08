@@ -19,6 +19,7 @@
     --brass: #B8955A;
     --brass-2: #D4B67E;
     --brass-rgb: 184, 149, 90;
+    --on-accent: #0E1A24;
 
     --pitch: #1F6F45;
     --pitch-2: #123B26;
@@ -107,7 +108,7 @@
   .row > div { flex: 1; }
   button {
     background: var(--brass);
-    color: var(--bg);
+    color: var(--on-accent);
     border: none;
     border-radius: 6px;
     padding: 9px 16px;
@@ -170,6 +171,22 @@
     flex-wrap: wrap;
     gap: 8px;
   }
+  .top-bar label {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  input[type="color"] {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: none;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+  input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
 
   .masthead {
     display: flex;
@@ -453,7 +470,7 @@
   }
   .view-tab.active {
     background: var(--brass);
-    color: var(--bg);
+    color: var(--on-accent);
     border-color: var(--brass);
     font-weight: 600;
   }
@@ -617,11 +634,23 @@
     <p class="status" id="searchStatus"></p>
     <p class="error" id="searchError"></p>
     <div class="team-results" id="teamResults"></div>
+    <div class="row" style="margin-top: 14px;">
+      <button class="secondary" id="carregarAnaliseBtn">Carregar análise guardada</button>
+    </div>
+    <input type="file" id="carregarAnaliseInput" accept="application/json" class="hidden">
+    <p class="error" id="carregarAnaliseError"></p>
   </section>
 
   <section id="squadBlock" class="hidden">
-    <div class="top-bar" style="justify-content: flex-end;">
-      <button class="secondary" id="backToSearchBtn">Procurar outro clube</button>
+    <div class="top-bar">
+      <label style="display:flex; align-items:center; gap:8px; margin-bottom:0;">
+        Cor do clube
+        <input type="color" id="corClubeInput" value="#B8955A">
+      </label>
+      <div style="display:flex; gap:8px;">
+        <button class="secondary" id="guardarAnaliseBtn">Guardar análise</button>
+        <button class="secondary" id="backToSearchBtn">Procurar outro clube</button>
+      </div>
     </div>
     <div class="masthead">
       <div class="masthead-club">
@@ -761,10 +790,53 @@
   const ganhoDescricao = document.getElementById("ganhoDescricao");
   const ganhoValor = document.getElementById("ganhoValor");
   const ganhosExtraList = document.getElementById("ganhosExtraList");
+  const corClubeInput = document.getElementById("corClubeInput");
+  const guardarAnaliseBtn = document.getElementById("guardarAnaliseBtn");
+  const carregarAnaliseBtn = document.getElementById("carregarAnaliseBtn");
+  const carregarAnaliseInput = document.getElementById("carregarAnaliseInput");
+  const carregarAnaliseError = document.getElementById("carregarAnaliseError");
+  const CLUBE_COR_DEFEITO = "#B8955A";
 
   function getKey() {
     return localStorage.getItem(KEY_STORAGE);
   }
+
+  function hexToRgb(hex) {
+    hex = hex.replace("#", "");
+    if (hex.length === 3) hex = hex.split("").map((c) => c + c).join("");
+    const num = parseInt(hex, 16);
+    return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+  }
+
+  function rgbToHex(r, g, b) {
+    return "#" + [r, g, b].map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("");
+  }
+
+  function relativeLuminance(rgb) {
+    const srgb = [rgb.r, rgb.g, rgb.b].map((v) => {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
+  }
+
+  function lighten(hex, amount) {
+    const { r, g, b } = hexToRgb(hex);
+    return rgbToHex(r + (255 - r) * amount, g + (255 - g) * amount, b + (255 - b) * amount);
+  }
+
+  function aplicarCorClube(hex) {
+    if (!hex) hex = CLUBE_COR_DEFEITO;
+    const rgb = hexToRgb(hex);
+    const root = document.documentElement.style;
+    root.setProperty("--brass", hex);
+    root.setProperty("--brass-rgb", rgb.r + ", " + rgb.g + ", " + rgb.b);
+    root.setProperty("--brass-2", lighten(hex, 0.25));
+    root.setProperty("--on-accent", relativeLuminance(rgb) > 0.4 ? "#0E1A24" : "#EAEDEF");
+    corClubeInput.value = hex;
+  }
+
+  corClubeInput.addEventListener("input", () => aplicarCorClube(corClubeInput.value));
 
   function showSearchScreen() {
     keyBlock.classList.add("hidden");
@@ -828,6 +900,8 @@
     squadList.innerHTML = "";
     players = [];
     extraGanhos = [];
+    aplicarCorClube(CLUBE_COR_DEFEITO);
+    carregarAnaliseError.textContent = "";
     showSearchScreen();
   });
 
@@ -898,6 +972,8 @@
       squadClubName.textContent = teamName;
       squadClubLogo.style.visibility = "visible";
       squadClubLogo.src = teamLogo || "";
+      extraGanhos = [];
+      aplicarCorClube(CLUBE_COR_DEFEITO);
       renderSquad();
       showSquadScreen();
     } catch (err) {
@@ -1016,6 +1092,60 @@
       ganhosExtraList.appendChild(item);
     });
   }
+
+  guardarAnaliseBtn.addEventListener("click", () => {
+    const analise = {
+      versao: 1,
+      clube: {
+        nome: squadClubName.textContent || "",
+        logo: squadClubLogo.src || ""
+      },
+      corDestaque: corClubeInput.value,
+      jogadores: players,
+      ganhosExtra: extraGanhos
+    };
+    const blob = new Blob([JSON.stringify(analise, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = (squadClubName.textContent || "plantel").trim().replace(/\s+/g, "_") + "_analise.json";
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+  });
+
+  carregarAnaliseBtn.addEventListener("click", () => {
+    carregarAnaliseInput.click();
+  });
+
+  carregarAnaliseInput.addEventListener("change", () => {
+    const file = carregarAnaliseInput.files[0];
+    carregarAnaliseInput.value = "";
+    if (!file) return;
+    carregarAnaliseError.textContent = "";
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const analise = JSON.parse(reader.result);
+        if (!analise || !Array.isArray(analise.jogadores)) {
+          throw new Error("O ficheiro não parece ser uma análise guardada válida.");
+        }
+        players = analise.jogadores;
+        extraGanhos = Array.isArray(analise.ganhosExtra) ? analise.ganhosExtra : [];
+        squadClubName.textContent = (analise.clube && analise.clube.nome) || "";
+        squadClubLogo.src = (analise.clube && analise.clube.logo) || "";
+        squadClubLogo.style.visibility = squadClubLogo.src ? "visible" : "hidden";
+        aplicarCorClube(analise.corDestaque || CLUBE_COR_DEFEITO);
+        renderSquad();
+        showSquadScreen();
+      } catch (err) {
+        carregarAnaliseError.textContent = "Não foi possível ler o ficheiro: " + err.message;
+      }
+    };
+    reader.onerror = () => {
+      carregarAnaliseError.textContent = "Não foi possível ler o ficheiro.";
+    };
+    reader.readAsText(file);
+  });
 
   function computeSaldo() {
     const totalJogadores = players.reduce((total, p) => {
@@ -1502,12 +1632,25 @@
     }
   }
 
-  function construirListaTransferencias(titulo, lista, tipo) {
+  function construirLinhaTotal(label, valorTexto, corDestaque) {
+    const totalRow = document.createElement("div");
+    totalRow.style.cssText = "display:flex; justify-content:space-between; gap:8px; padding-top:6px; margin-top:4px; border-top:1px solid " + corDestaque + "; font-weight:700;";
+    const totalLabel = document.createElement("span");
+    totalLabel.textContent = label;
+    const totalValue = document.createElement("span");
+    totalValue.style.cssText = "font-family:'IBM Plex Mono', monospace; white-space:nowrap;";
+    totalValue.textContent = valorTexto;
+    totalRow.appendChild(totalLabel);
+    totalRow.appendChild(totalValue);
+    return totalRow;
+  }
+
+  function construirListaTransferencias(titulo, lista, tipo, corDestaque) {
     const box = document.createElement("div");
     box.style.cssText = "flex:1; background:#1D2C39; border-radius:8px; padding:10px; font-size:11px; font-family:'IBM Plex Sans', Arial, sans-serif; color:#EAEDEF;";
 
     const titleEl = document.createElement("div");
-    titleEl.style.cssText = "font-family:'Big Shoulders Display', Arial, sans-serif; font-weight:700; font-size:13px; letter-spacing:0.03em; text-transform:uppercase; margin-bottom:6px; color:#B8955A;";
+    titleEl.style.cssText = "font-family:'Big Shoulders Display', Arial, sans-serif; font-weight:700; font-size:13px; letter-spacing:0.03em; text-transform:uppercase; margin-bottom:6px; color:" + corDestaque + ";";
     titleEl.textContent = titulo;
     box.appendChild(titleEl);
 
@@ -1516,8 +1659,10 @@
       vazio.style.cssText = "color:#8A9BA8;";
       vazio.textContent = "Nenhum";
       box.appendChild(vazio);
+      return box;
     }
 
+    let total = 0;
     lista.forEach((p) => {
       const linha = document.createElement("div");
       linha.style.cssText = "display:flex; justify-content:space-between; gap:8px; padding:3px 0; border-bottom:1px solid #24343F;";
@@ -1529,9 +1674,11 @@
       if (tipo === "sai") {
         const pct = p.clubPct != null ? parseFloat(p.clubPct) : 100;
         const contribuicao = valor * (pct / 100);
+        total += contribuicao;
         valorTxt.textContent = valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€ (" + pct + "%) = " +
           contribuicao.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€";
       } else {
+        total -= valor;
         valorTxt.textContent = "-" + valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€";
       }
       linha.appendChild(nome);
@@ -1539,15 +1686,17 @@
       box.appendChild(linha);
     });
 
+    box.appendChild(construirLinhaTotal("Total", total.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€", corDestaque));
+
     return box;
   }
 
-  function construirListaGanhosExtra(titulo, lista) {
+  function construirListaGanhosExtra(titulo, lista, corDestaque) {
     const box = document.createElement("div");
     box.style.cssText = "flex:1; background:#1D2C39; border-radius:8px; padding:10px; font-size:11px; font-family:'IBM Plex Sans', Arial, sans-serif; color:#EAEDEF;";
 
     const titleEl = document.createElement("div");
-    titleEl.style.cssText = "font-family:'Big Shoulders Display', Arial, sans-serif; font-weight:700; font-size:13px; letter-spacing:0.03em; text-transform:uppercase; margin-bottom:6px; color:#B8955A;";
+    titleEl.style.cssText = "font-family:'Big Shoulders Display', Arial, sans-serif; font-weight:700; font-size:13px; letter-spacing:0.03em; text-transform:uppercase; margin-bottom:6px; color:" + corDestaque + ";";
     titleEl.textContent = titulo;
     box.appendChild(titleEl);
 
@@ -1556,8 +1705,10 @@
       vazio.style.cssText = "color:#8A9BA8;";
       vazio.textContent = "Nenhum";
       box.appendChild(vazio);
+      return box;
     }
 
+    let total = 0;
     lista.forEach((g) => {
       const linha = document.createElement("div");
       linha.style.cssText = "display:flex; justify-content:space-between; gap:8px; padding:3px 0; border-bottom:1px solid #24343F;";
@@ -1566,11 +1717,14 @@
       const valorTxt = document.createElement("span");
       valorTxt.style.cssText = "white-space:nowrap; font-family:'IBM Plex Mono', monospace;";
       const valor = parseFloat(g.valor) || 0;
+      total += valor;
       valorTxt.textContent = "+" + valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€";
       linha.appendChild(desc);
       linha.appendChild(valorTxt);
       box.appendChild(linha);
     });
+
+    box.appendChild(construirLinhaTotal("Total", "+" + total.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€", corDestaque));
 
     return box;
   }
@@ -1684,11 +1838,13 @@
     });
     container.appendChild(pitch);
 
+    const corDestaque = getComputedStyle(document.documentElement).getPropertyValue("--brass").trim() || "#B8955A";
+
     const listas = document.createElement("div");
     listas.style.cssText = "display:flex; gap:16px; margin-top:14px;";
-    listas.appendChild(construirListaTransferencias("Saem", saem, "sai"));
-    listas.appendChild(construirListaTransferencias("Entram", entram, "entra"));
-    listas.appendChild(construirListaGanhosExtra("Outros ganhos", extraGanhos));
+    listas.appendChild(construirListaTransferencias("Saem", saem, "sai", corDestaque));
+    listas.appendChild(construirListaTransferencias("Entram", entram, "entra", corDestaque));
+    listas.appendChild(construirListaGanhosExtra("Outros ganhos", extraGanhos, corDestaque));
     container.appendChild(listas);
 
     return container;
