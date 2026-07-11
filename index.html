@@ -455,40 +455,74 @@
     border-radius: 8px;
     font-size: 0.85rem;
   }
-  .position-editor .campo {
-    margin-bottom: 8px;
-  }
-  .position-editor .campo-label {
-    display: block;
+  .position-editor-hint {
     color: var(--muted);
-    margin-bottom: 4px;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
+    margin: 0 0 8px;
   }
-  .position-editor select {
-    padding: 6px 8px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    font-size: 0.9rem;
-    background: var(--card);
+
+  .mini-campo {
+    background: linear-gradient(180deg, var(--pitch), var(--pitch-2));
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 3px;
+    margin-bottom: 10px;
+  }
+  .mini-campo-linha {
+    display: flex;
+    gap: 3px;
+  }
+  .mini-campo-linha.compact { justify-content: center; }
+  .mini-campo-linha.compact .mini-campo-zona { flex: 0 1 64px; }
+  .mini-campo-zona {
+    flex: 1;
+    min-height: 26px;
+    min-width: 28px;
+    border: 1px dashed rgba(255,255,255,0.35);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 0.55rem;
+    letter-spacing: 0.02em;
+    color: rgba(255,255,255,0.85);
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .mini-campo-zona:hover { background: rgba(255,255,255,0.15); }
+  .mini-campo-zona.principal {
+    background: var(--brass);
+    color: var(--on-accent);
+    border-style: solid;
+    border-color: var(--brass);
+    font-weight: 700;
+  }
+  .mini-campo-zona.secundaria {
+    background: rgba(var(--brass-rgb), 0.3);
+    border-style: dashed;
+    border-color: var(--brass);
     color: var(--text);
   }
-  .position-editor .linha-checkboxes {
-    margin-bottom: 6px;
-  }
-  .position-editor .linha-checkboxes .linha-nome {
-    font-weight: 600;
-    color: var(--muted);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-  }
-  .position-editor label.chk {
-    display: inline-flex;
-    align-items: center;
+  .mini-campo-zona-stack {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     gap: 3px;
-    margin-right: 10px;
-    font-size: 0.85rem;
   }
-  .position-editor label.chk.disabled { color: #4E5C68; }
+  .mini-campo-zona-stack .mini-campo-zona {
+    flex: 1;
+    min-height: 12px;
+    font-size: 0.44rem;
+  }
+  .mini-campo-zona.spacer {
+    border-color: transparent;
+    cursor: default;
+  }
+  .mini-campo-zona.spacer:hover { background: none; }
 
   .view-tabs {
     display: flex;
@@ -1668,66 +1702,88 @@
     return row;
   }
 
+  let ultimoCliqueZonaEditor = null;
+
+  function handleMiniZonaClick(player, code) {
+    const agora = Date.now();
+    const ehDuploClique = ultimoCliqueZonaEditor &&
+      ultimoCliqueZonaEditor.player === player &&
+      ultimoCliqueZonaEditor.code === code &&
+      (agora - ultimoCliqueZonaEditor.time) < 400;
+
+    if (ehDuploClique) {
+      player.posPrincipal = code;
+      player.posSecundarias = player.posSecundarias.filter((c) => c !== code);
+      ultimoCliqueZonaEditor = null;
+    } else {
+      if (code !== player.posPrincipal) {
+        if (player.posSecundarias.includes(code)) {
+          player.posSecundarias = player.posSecundarias.filter((c) => c !== code);
+        } else {
+          player.posSecundarias.push(code);
+        }
+      }
+      ultimoCliqueZonaEditor = { player: player, code: code, time: agora };
+    }
+    renderSquad();
+  }
+
+  function buildMiniZona(player, code) {
+    const zona = document.createElement("div");
+    zona.className = "mini-campo-zona";
+    if (code === player.posPrincipal) {
+      zona.classList.add("principal");
+    } else if (player.posSecundarias.includes(code)) {
+      zona.classList.add("secundaria");
+    }
+    zona.textContent = code;
+    zona.addEventListener("click", () => handleMiniZonaClick(player, code));
+    return zona;
+  }
+
+  function buildMiniZonaSpacer() {
+    const zona = document.createElement("div");
+    zona.className = "mini-campo-zona spacer";
+    return zona;
+  }
+
+  function renderMiniCampo(player) {
+    const container = document.createElement("div");
+    container.className = "mini-campo";
+
+    FIELD_ROWS.forEach((row) => {
+      const linhaDiv = document.createElement("div");
+      linhaDiv.className = "mini-campo-linha" + (row.compact ? " compact" : "");
+
+      row.codes.forEach((entry) => {
+        if (entry === null) {
+          linhaDiv.appendChild(buildMiniZonaSpacer());
+        } else if (Array.isArray(entry)) {
+          const stack = document.createElement("div");
+          stack.className = "mini-campo-zona-stack";
+          entry.forEach((code) => stack.appendChild(buildMiniZona(player, code)));
+          linhaDiv.appendChild(stack);
+        } else {
+          linhaDiv.appendChild(buildMiniZona(player, entry));
+        }
+      });
+
+      container.appendChild(linhaDiv);
+    });
+
+    return container;
+  }
+
   function renderPositionEditor(player) {
     const box = document.createElement("div");
     box.className = "position-editor";
 
-    const campoPrincipal = document.createElement("div");
-    campoPrincipal.className = "campo";
-    const labelPrincipal = document.createElement("span");
-    labelPrincipal.className = "campo-label";
-    labelPrincipal.textContent = "Posição principal";
-    campoPrincipal.appendChild(labelPrincipal);
-    const selectPrincipal = document.createElement("select");
-    selectPrincipal.innerHTML = positionSelectHTML(player.posPrincipal);
-    selectPrincipal.addEventListener("change", () => {
-      player.posPrincipal = selectPrincipal.value;
-      player.posSecundarias = player.posSecundarias.filter((c) => c !== player.posPrincipal);
-      renderSquad();
-    });
-    campoPrincipal.appendChild(selectPrincipal);
-    box.appendChild(campoPrincipal);
+    const hint = document.createElement("p");
+    hint.className = "position-editor-hint";
+    hint.textContent = "Toca numa posição para marcar secundária. Toque duplo define a principal (atual: " + player.posPrincipal + ").";
+    box.appendChild(hint);
 
-    const campoSecundarias = document.createElement("div");
-    campoSecundarias.className = "campo";
-    const labelSecundarias = document.createElement("span");
-    labelSecundarias.className = "campo-label";
-    labelSecundarias.textContent = "Posições secundárias";
-    campoSecundarias.appendChild(labelSecundarias);
-
-    POSITION_GROUPS.forEach((g) => {
-      const linhaDiv = document.createElement("div");
-      linhaDiv.className = "linha-checkboxes";
-      const linhaNome = document.createElement("span");
-      linhaNome.className = "linha-nome";
-      linhaNome.textContent = GROUP_LABELS[g.line] + ": ";
-      linhaDiv.appendChild(linhaNome);
-
-      g.codes.forEach((code) => {
-        const isPrincipal = code === player.posPrincipal;
-        const lbl = document.createElement("label");
-        lbl.className = "chk" + (isPrincipal ? " disabled" : "");
-        const chk = document.createElement("input");
-        chk.type = "checkbox";
-        chk.checked = !isPrincipal && player.posSecundarias.includes(code);
-        chk.disabled = isPrincipal;
-        chk.addEventListener("change", () => {
-          if (chk.checked) {
-            player.posSecundarias.push(code);
-          } else {
-            player.posSecundarias = player.posSecundarias.filter((c) => c !== code);
-          }
-          renderSquad();
-        });
-        lbl.appendChild(chk);
-        lbl.appendChild(document.createTextNode(code + (isPrincipal ? " (principal)" : "")));
-        linhaDiv.appendChild(lbl);
-      });
-
-      campoSecundarias.appendChild(linhaDiv);
-    });
-
-    box.appendChild(campoSecundarias);
+    box.appendChild(renderMiniCampo(player));
 
     const closeBtn = document.createElement("button");
     closeBtn.type = "button";
