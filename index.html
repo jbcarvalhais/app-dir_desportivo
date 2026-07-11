@@ -262,23 +262,40 @@
 
   .player {
     display: flex;
-    align-items: center;
-    gap: 12px;
+    flex-direction: column;
+    gap: 6px;
     padding: 8px 6px;
     border-bottom: 1px solid var(--border);
   }
   .player:last-child { border-bottom: none; }
+  .player-row-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .player-row-top input[type="text"] {
+    flex: 1;
+    min-width: 70px;
+    width: auto;
+  }
+  .player-row-bottom {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding-left: 26px;
+  }
   .avatar {
-    width: 42px;
-    height: 42px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     object-fit: cover;
     flex-shrink: 0;
     background: var(--surface);
   }
   .avatar-placeholder {
-    width: 42px;
-    height: 42px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     flex-shrink: 0;
     background: var(--surface);
@@ -287,22 +304,7 @@
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    font-size: 0.85rem;
-  }
-  .player-fields {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    flex: 1;
-  }
-  .player-fields input[type="text"] {
-    width: auto;
-    min-width: 120px;
-    flex: 1;
-  }
-  .player-fields input[type="number"] {
-    width: 58px;
+    font-size: 0.8rem;
   }
   .numero-wrap {
     display: flex;
@@ -311,8 +313,9 @@
     color: var(--muted);
     font-size: 0.9rem;
     font-family: var(--font-mono);
+    flex-shrink: 0;
   }
-  .numero-wrap input[type="number"] { width: 52px; }
+  .numero-wrap input[type="number"] { width: 46px; }
 
   .drag-handle {
     cursor: grab;
@@ -341,22 +344,27 @@
   .badge.entra { background: var(--signal-green-fill); }
   .badge.fora { background: var(--neutral-fill); }
 
-  .pill {
+  .estado-select {
     background: var(--surface);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 4px 10px;
-    font-size: 0.78rem;
+    border-radius: 6px;
+    padding: 5px 6px;
+    font-size: 0.8rem;
+    font-family: var(--font-body);
     cursor: pointer;
+    flex-shrink: 0;
   }
-  .pill:hover { background: var(--border); }
-  .pill.active { color: var(--text); border-color: transparent; }
-  .pill.active.fica { background: var(--neutral-fill); }
-  .pill.active.sai { background: var(--signal-red-fill); }
-  .pill.active.emprestado { background: var(--neutral-fill); }
-  .pill.active.fora { background: var(--neutral-fill); }
-  .pills { display: flex; gap: 4px; }
+  .estado-select.estado-sai {
+    border-color: var(--signal-red);
+    color: var(--signal-red);
+    background: rgba(224, 122, 109, 0.12);
+  }
+  .estado-select.estado-emprestado,
+  .estado-select.estado-fora {
+    border-color: var(--muted);
+    opacity: 0.85;
+  }
 
   .value-fields {
     display: flex;
@@ -440,7 +448,6 @@
   .pos-toggle-btn:hover { background: var(--surface); }
 
   .position-editor {
-    flex-basis: 100%;
     margin-top: 6px;
     padding: 10px;
     background: var(--surface);
@@ -641,6 +648,14 @@
     font-size: 0.78rem;
     color: var(--muted);
     margin: 0 0 8px;
+  }
+
+  @media (max-width: 480px) {
+    .avatar, .avatar-placeholder { width: 30px; height: 30px; }
+    .player-row-top input[type="text"] { min-width: 56px; }
+    .numero-wrap input[type="number"] { width: 40px; }
+    .value-fields input[type="number"] { width: 48px; }
+    .value-fields { gap: 4px; }
   }
 </style>
 </head>
@@ -1524,11 +1539,14 @@
     row.className = "player";
     row.dataset.playerId = String(player.id);
 
+    const rowTop = document.createElement("div");
+    rowTop.className = "player-row-top";
+
     const handle = document.createElement("span");
     handle.className = "drag-handle";
     handle.textContent = "⠿";
     handle.title = "Arrastar para reordenar";
-    row.appendChild(handle);
+    rowTop.appendChild(handle);
 
     if (player.photo) {
       const img = document.createElement("img");
@@ -1541,22 +1559,19 @@
         ph.textContent = initials(player.name);
         img.replaceWith(ph);
       };
-      row.appendChild(img);
+      rowTop.appendChild(img);
     } else {
       const ph = document.createElement("div");
       ph.className = "avatar-placeholder";
       ph.textContent = initials(player.name);
-      row.appendChild(ph);
+      rowTop.appendChild(ph);
     }
-
-    const fields = document.createElement("div");
-    fields.className = "player-fields";
 
     const nameInput = document.createElement("input");
     nameInput.type = "text";
     nameInput.value = player.name;
     nameInput.addEventListener("input", () => { player.name = nameInput.value; autoSave(); });
-    fields.appendChild(nameInput);
+    rowTop.appendChild(nameInput);
 
     const numeroWrap = document.createElement("span");
     numeroWrap.className = "numero-wrap";
@@ -1573,19 +1588,31 @@
       autoSave();
     });
     numeroWrap.appendChild(numeroInput);
-    fields.appendChild(numeroWrap);
+    rowTop.appendChild(numeroWrap);
 
     const badge = document.createElement("span");
     badge.className = "badge " + linha.toLowerCase();
     badge.textContent = player.posPrincipal;
-    fields.appendChild(badge);
+    rowTop.appendChild(badge);
+
+    if (player.isReforco) {
+      const entraBadge = document.createElement("span");
+      entraBadge.className = "badge entra";
+      entraBadge.textContent = "ENTRA";
+      rowTop.appendChild(entraBadge);
+    }
 
     if (player.posSecundarias.length > 0) {
       const sec = document.createElement("span");
       sec.className = "secundarias-text";
       sec.textContent = "+ " + player.posSecundarias.join(", ");
-      fields.appendChild(sec);
+      rowTop.appendChild(sec);
     }
+
+    row.appendChild(rowTop);
+
+    const rowBottom = document.createElement("div");
+    rowBottom.className = "player-row-bottom";
 
     const posToggleBtn = document.createElement("button");
     posToggleBtn.type = "button";
@@ -1595,14 +1622,10 @@
       openEditorId = openEditorId === player.id ? null : player.id;
       renderSquad();
     });
-    fields.appendChild(posToggleBtn);
+    rowBottom.appendChild(posToggleBtn);
 
     if (player.isReforco) {
-      const entraBadge = document.createElement("span");
-      entraBadge.className = "badge entra";
-      entraBadge.textContent = "ENTRA";
-      fields.appendChild(entraBadge);
-      fields.appendChild(renderValorField(player, "entra"));
+      rowBottom.appendChild(renderValorField(player, "entra"));
 
       const removeBtn = document.createElement("button");
       removeBtn.className = "remove-link";
@@ -1611,11 +1634,11 @@
         players = players.filter((p) => p !== player);
         renderSquad();
       });
-      fields.appendChild(removeBtn);
+      rowBottom.appendChild(removeBtn);
     } else {
-      fields.appendChild(renderEstadoPills(player));
+      rowBottom.appendChild(renderEstadoSelect(player));
       if (player.estado === "sai") {
-        fields.appendChild(renderValorField(player, "sai"));
+        rowBottom.appendChild(renderValorField(player, "sai"));
       }
       if (player.estado === "fora" || player.estado === "emprestado") {
         const restoreBtn = document.createElement("button");
@@ -1625,15 +1648,16 @@
           player.estado = "fica";
           renderSquad();
         });
-        fields.appendChild(restoreBtn);
+        rowBottom.appendChild(restoreBtn);
       }
     }
 
+    row.appendChild(rowBottom);
+
     if (openEditorId === player.id) {
-      fields.appendChild(renderPositionEditor(player));
+      row.appendChild(renderPositionEditor(player));
     }
 
-    row.appendChild(fields);
     return row;
   }
 
@@ -1711,9 +1735,9 @@
     return box;
   }
 
-  function renderEstadoPills(player) {
-    const wrap = document.createElement("span");
-    wrap.className = "pills";
+  function renderEstadoSelect(player) {
+    const select = document.createElement("select");
+    select.className = "estado-select estado-" + player.estado;
     const opcoes = [
       { estado: "fica", label: "Fica" },
       { estado: "sai", label: "Sai" },
@@ -1721,17 +1745,17 @@
       { estado: "fora", label: "Fora" }
     ];
     opcoes.forEach((op) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "pill " + op.estado + (player.estado === op.estado ? " active" : "");
-      btn.textContent = op.label;
-      btn.addEventListener("click", () => {
-        player.estado = op.estado;
-        renderSquad();
-      });
-      wrap.appendChild(btn);
+      const opt = document.createElement("option");
+      opt.value = op.estado;
+      opt.textContent = op.label;
+      if (player.estado === op.estado) opt.selected = true;
+      select.appendChild(opt);
     });
-    return wrap;
+    select.addEventListener("change", () => {
+      player.estado = select.value;
+      renderSquad();
+    });
+    return select;
   }
 
   function renderValorField(player, tipo) {
@@ -1748,7 +1772,7 @@
       player.valor = valorInput.value;
       updateSaldoDisplay();
     });
-    wrap.appendChild(document.createTextNode("Valor (M€)"));
+    wrap.appendChild(document.createTextNode("M€"));
     wrap.appendChild(valorInput);
 
     if (tipo === "sai") {
@@ -1761,7 +1785,8 @@
         player.clubPct = pctInput.value;
         updateSaldoDisplay();
       });
-      wrap.appendChild(document.createTextNode("Fica no clube (%)"));
+      pctInput.title = "Percentagem do valor que fica no clube";
+      wrap.appendChild(document.createTextNode("%"));
       wrap.appendChild(pctInput);
     }
 

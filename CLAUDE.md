@@ -62,6 +62,7 @@ Decisão do utilizador a 2026-07-08: além dos estados por jogador, existe uma l
 
 ## Vistas
 - **Lista**: agrupada por linha (GK/Defesas/Médios/Avançados) segundo a posição principal, com número inline, estado e valor. Jogadores "Sai", "Empréstimo" e "Fora da análise" ficam em secções à parte, recuperáveis. Cada grupo/secção é reordenável por arrasto (pega no ícone ⠿), sem alterar a posição de ninguém.
+- **Cartão do jogador compacto, mobile-first** (decisão do utilizador a 2026-07-09): cada jogador em duas linhas fixas — linha de cima (identidade: arrastar, foto, nome, número, posição) e linha de baixo (ações: estado, valor, "Posições"). O estado (Fica/Sai/Empréstimo/Fora) é um único menu (`<select>`) em vez de quatro botões separados, com a cor a refletir o estado (ex.: vermelho para Sai) — aplica-se a todos os tamanhos de ecrã, não só mobile, para não haver dois comportamentos a manter. Em ecrãs ≤480px a foto encolhe e os campos ficam mais estreitos. O estado "Sai" (tem valor + percentagem) pode ocupar 3 linhas em ecrãs muito estreitos — aceite como compromisso razoável, já que mostra mais informação do que os outros estados.
 - **Campo**: jogadores num relvado por posição principal (só "Fica" e "Entra" aparecem). Duas sub-vistas (decisão do utilizador a 2026-07-08):
   - **Vista simples** (default): só posições principais; arrastar entre zonas muda a posição principal e a posição anterior passa automaticamente a secundária (não se perde informação); arrastar dentro da mesma zona só reordena.
   - **Vista detalhada**: mostra também os jogadores nas posições secundárias, em duplicado, com sinalética mais discreta (chip mais pequeno, semitransparente, borda tracejada). Não é possível mudar de posição nesta vista, mas os ocupantes principais de cada zona podem ser reordenados entre si (as posições secundárias/duplicados não são arrastáveis).
@@ -89,6 +90,7 @@ Além do ficheiro `.json` manual, a app guarda uma cópia completa do cenário e
 9. Guardar/carregar análise em ficheiro local, cor do clube personalizável, e totais por categoria na imagem exportada. ✅
 10. Reordenar jogadores dentro da mesma posição, alinhar zonas LCDM/RCDM/LST/RST, número de camisola em vez de idade, exportar imagem a espelhar a sub-vista ativa. ✅
 11. Guardação automática no browser + faixa "retomar análise" ao abrir a app. ✅
+12. Lista compacta mobile-first: cartão do jogador em duas linhas fixas, e os 4 botões de estado substituídos por um único menu. ✅
 
 ## Riscos conhecidos
 - Plantel importado reflete a época terminada, não as transferências do mês corrente — o utilizador corrige à mão.
