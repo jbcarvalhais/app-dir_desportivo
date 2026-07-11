@@ -74,6 +74,9 @@ Decisão do utilizador a 2026-07-08: além dos estados por jogador, existe uma l
 ## Guardar/carregar análise (decisão do utilizador a 2026-07-09)
 Botão "Guardar análise" descarrega um `.json` local com todo o estado do cenário: jogadores (estado, posições, valores), outros ganhos, nome/escudo do clube e cor de destaque escolhida. Botão "Carregar análise guardada" (no ecrã de procurar clube) lê esse ficheiro e repõe o cenário exatamente como estava — sem nenhuma chamada à API-Football, poupando o limite diário de pedidos. Pensado para continuar uma análise noutro dia ou computador sem reimportar o plantel.
 
+## Guardação automática + retomar análise (decisão do utilizador a 2026-07-09)
+Além do ficheiro `.json` manual, a app guarda uma cópia completa do cenário em curso no `localStorage` a cada alteração (nome, número, estado, posição, valor, cor, reforços, ganhos extra, reordenação) — silenciosa, sem qualquer ação do utilizador. Ao abrir a app, se existir uma cópia automática, aparece uma faixa no ecrã "Procurar clube" ("Tens uma análise por retomar: [Clube]") com as opções "Retomar análise" (repõe tudo, tal como o carregamento manual) ou "Descartar" (apaga a cópia). A cópia automática só é substituída quando há uma alteração real no cenário atual — não é limpa só por clicar em "Procurar outro clube", precisamente para servir de rede de segurança contra fechos acidentais do browser.
+
 ## Ordem de construção (um entregável de cada vez)
 1. Importar (chave + procurar clube + buscar plantel) → vista de lista editável, agrupada por linha, com placeholder de iniciais e idade inline. ✅
 2. Estados (fica/sai/entra/fora) + saldo com retenção. ✅
@@ -84,6 +87,8 @@ Botão "Guardar análise" descarrega um `.json` local com todo o estado do cená
 7. Vista de campo: vista simples vs. detalhada (posições secundárias em duplicado), drag-and-drop com posição anterior a passar a secundária, e reorganização das linhas do campo. ✅
 8. Estado "Empréstimo" (sem custos) e secção "Outros ganhos" (entradas manuais de dinheiro não ligado a jogadores do plantel). ✅
 9. Guardar/carregar análise em ficheiro local, cor do clube personalizável, e totais por categoria na imagem exportada. ✅
+10. Reordenar jogadores dentro da mesma posição, alinhar zonas LCDM/RCDM/LST/RST, número de camisola em vez de idade, exportar imagem a espelhar a sub-vista ativa. ✅
+11. Guardação automática no browser + faixa "retomar análise" ao abrir a app. ✅
 
 ## Riscos conhecidos
 - Plantel importado reflete a época terminada, não as transferências do mês corrente — o utilizador corrige à mão.
