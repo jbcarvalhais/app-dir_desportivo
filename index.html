@@ -516,6 +516,8 @@
     display: flex;
     flex-direction: column-reverse;
     gap: 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .campo-linha {
     display: flex;
@@ -656,6 +658,11 @@
     .numero-wrap input[type="number"] { width: 40px; }
     .value-fields input[type="number"] { width: 48px; }
     .value-fields { gap: 4px; }
+
+    .campo-linha { min-width: max-content; }
+    .campo-zona { flex: 0 0 70px; min-width: 70px; }
+    .campo-zona-stack { flex: 0 0 70px; min-width: 70px; }
+    .campo-linha.compact .campo-zona { flex: 0 0 110px; }
   }
 </style>
 </head>

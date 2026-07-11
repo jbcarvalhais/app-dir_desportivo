@@ -67,6 +67,7 @@ Decisão do utilizador a 2026-07-08: além dos estados por jogador, existe uma l
   - **Vista simples** (default): só posições principais; arrastar entre zonas muda a posição principal e a posição anterior passa automaticamente a secundária (não se perde informação); arrastar dentro da mesma zona só reordena.
   - **Vista detalhada**: mostra também os jogadores nas posições secundárias, em duplicado, com sinalética mais discreta (chip mais pequeno, semitransparente, borda tracejada). Não é possível mudar de posição nesta vista, mas os ocupantes principais de cada zona podem ser reordenados entre si (as posições secundárias/duplicados não são arrastáveis).
   - Layout por linhas (revisto a 2026-07-08, e de novo a 2026-07-09 para alinhar corretamente as colunas): Guarda-redes (1 zona, mais pequena e centrada), Defesas (LB+LWB e RB+RWB empilhados no espaço de um Central, LCB, CCB, RCB — 5 "slots" de largura), Médios defensivos (LCDM/CCDM/RCDM alinhados com a largura de LCB/CCB/RCB, com zonas vazias e invisíveis dos lados em vez de esticar até à linha), Médios (5), Médios ofensivos (LW, LCAM, CCAM, RCAM, RW), Avançados (LST/CST/RST alinhados com a largura de LCAM/CCAM/RCAM, mesma lógica de zonas vazias). Zonas ordenadas da esquerda para a direita, para que os trios L/C/R se definam pela zona onde o jogador é largado. Orientação: guarda-redes no fundo, avançados no topo.
+  - **Mobile (≤480px, decisão do utilizador a 2026-07-09):** cada zona passa a ter largura fixa de 70px (sem esticar), e o relvado ganha scroll horizontal próprio quando a soma das zonas não cabe no ecrã — garante que nenhuma zona fica espremida a ponto de ser ilegível ou impossível de usar com o dedo, e mantém as colunas alinhadas entre linhas mesmo com scroll. Acima de 480px mantém-se o comportamento original (zonas a esticar para preencher a largura, sem scroll).
 
 ## Partilha
 - Imagem: PNG com cabeçalho (nome do clube + saldo), o campo (só Fica/Entra, **espelhando a sub-vista ativa no momento** — simples ou detalhada, decisão do utilizador a 2026-07-09) e, por baixo, três listas compactas "Saem", "Entram" e "Outros ganhos" com valores associados e uma **linha de total por lista**. Fotos convertidas para data URL antes da exportação (contorna CORS do CDN); se uma foto falhar, usa iniciais em vez de bloquear a exportação toda.
@@ -91,6 +92,7 @@ Além do ficheiro `.json` manual, a app guarda uma cópia completa do cenário e
 10. Reordenar jogadores dentro da mesma posição, alinhar zonas LCDM/RCDM/LST/RST, número de camisola em vez de idade, exportar imagem a espelhar a sub-vista ativa. ✅
 11. Guardação automática no browser + faixa "retomar análise" ao abrir a app. ✅
 12. Lista compacta mobile-first: cartão do jogador em duas linhas fixas, e os 4 botões de estado substituídos por um único menu. ✅
+13. Campo em mobile: zonas com largura mínima garantida (70px) e scroll horizontal próprio do relvado em ecrãs estreitos. ✅
 
 ## Riscos conhecidos
 - Plantel importado reflete a época terminada, não as transferências do mês corrente — o utilizador corrige à mão.
