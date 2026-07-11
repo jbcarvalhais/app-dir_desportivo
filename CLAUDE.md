@@ -75,7 +75,12 @@ Decisão do utilizador a 2026-07-08: além dos estados por jogador, existe uma l
 - Link: **adiado para o backlog** (decisão do utilizador a 2026-07-07 — não faz sentido para já). Retomar só se pedido explicitamente.
 
 ## Guardar/carregar análise (decisão do utilizador a 2026-07-09)
-Botão "Guardar análise" descarrega um `.json` local com todo o estado do cenário: jogadores (estado, posições, valores), outros ganhos, nome/escudo do clube e cor de destaque escolhida. Botão "Carregar análise guardada" (no ecrã de procurar clube) lê esse ficheiro e repõe o cenário exatamente como estava — sem nenhuma chamada à API-Football, poupando o limite diário de pedidos. Pensado para continuar uma análise noutro dia ou computador sem reimportar o plantel.
+Botão "Guardar análise" descarrega um `.json` local com todo o estado do cenário: jogadores (estado, posições, valores), outros ganhos, nome/escudo do clube e cor de destaque escolhida. Botão "Carregar análise guardada" (no ecrã de procurar clube) lê esse ficheiro e repõe o cenário exatamente como estava — sem nenhuma chamada à API-Football, poupando o limite diário de pedidos. Pensado para continuar uma análise noutro dia ou computador sem reimportar o plantel. Cada ficheiro guardado inclui um campo `versao` (constante `ANALISE_VERSAO_ATUAL` no código); ao carregar um ficheiro com versão mais recente do que a app suporta, mostra um aviso mas continua a tentar carregar (aviso suave, não bloqueia).
+
+## Interface: arrumação e feedback (decisão do utilizador a 2026-07-09)
+- "Guardar análise" e "Exportar imagem" ficam juntos numa única barra de ações, logo a seguir ao cabeçalho do clube (em vez de espalhados entre o topo e os separadores Lista/Campo).
+- Ações que geram um ficheiro ou mudam o cenário (guardar análise, exportar imagem, carregar `.json`, retomar análise automática) mostram um aviso temporário no fundo do ecrã (ex.: "Imagem descarregada ✓") que desaparece sozinho ao fim de ~2,5s — implementado com animação CSS (`@keyframes`), não com `requestAnimationFrame`, para não depender do browser estar em primeiro plano.
+- Contorno de foco visível (`:focus-visible`) em toda a app, com a cor de destaque do clube, para navegação por teclado.
 
 ## Guardação automática + retomar análise (decisão do utilizador a 2026-07-09)
 Além do ficheiro `.json` manual, a app guarda uma cópia completa do cenário em curso no `localStorage` a cada alteração (nome, número, estado, posição, valor, cor, reforços, ganhos extra, reordenação) — silenciosa, sem qualquer ação do utilizador. Ao abrir a app, se existir uma cópia automática, aparece uma faixa no ecrã "Procurar clube" ("Tens uma análise por retomar: [Clube]") com as opções "Retomar análise" (repõe tudo, tal como o carregamento manual) ou "Descartar" (apaga a cópia). A cópia automática só é substituída quando há uma alteração real no cenário atual — não é limpa só por clicar em "Procurar outro clube", precisamente para servir de rede de segurança contra fechos acidentais do browser.
@@ -95,6 +100,7 @@ Além do ficheiro `.json` manual, a app guarda uma cópia completa do cenário e
 12. Lista compacta mobile-first: cartão do jogador em duas linhas fixas, e os 4 botões de estado substituídos por um único menu. ✅
 13. Campo em mobile: zonas com largura mínima garantida (70px) e scroll horizontal próprio do relvado em ecrãs estreitos. ✅
 14. Editor de posições visual: mini-campo clicável substitui o menu + checkboxes (toque simples = secundária, toque duplo = principal). ✅
+15. Barra única de ações (guardar/exportar), avisos temporários, abreviação "Emprést.", foco visível, aviso de versão ao carregar ficheiro. ✅
 
 ## Riscos conhecidos
 - Plantel importado reflete a época terminada, não as transferências do mês corrente — o utilizador corrige à mão.

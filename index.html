@@ -189,6 +189,41 @@
     font-size: 0.85rem;
     color: var(--muted);
   }
+
+  .actions-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  @keyframes toast-in-out {
+    0% { opacity: 0; transform: translate(-50%, 12px); }
+    10% { opacity: 1; transform: translate(-50%, 0); }
+    88% { opacity: 1; transform: translate(-50%, 0); }
+    100% { opacity: 0; transform: translate(-50%, 12px); }
+  }
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--brass);
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 0.9rem;
+    max-width: 90vw;
+    text-align: center;
+    z-index: 1000;
+    pointer-events: none;
+    animation: toast-in-out 2.5s ease forwards;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brass);
+    outline-offset: 2px;
+  }
   input[type="color"] {
     width: 30px;
     height: 30px;
@@ -750,10 +785,7 @@
         Cor do clube
         <input type="color" id="corClubeInput" value="#B8955A">
       </label>
-      <div style="display:flex; gap:8px;">
-        <button class="secondary" id="guardarAnaliseBtn">Guardar análise</button>
-        <button class="secondary" id="backToSearchBtn">Procurar outro clube</button>
-      </div>
+      <button class="secondary" id="backToSearchBtn">Procurar outro clube</button>
     </div>
     <div class="masthead">
       <div class="masthead-club">
@@ -764,6 +796,10 @@
         <span class="saldo-label">Saldo de mercado</span>
         <span class="saldo-value" id="saldoValue">0,0 M€</span>
       </div>
+    </div>
+    <div class="actions-bar">
+      <button class="secondary" id="guardarAnaliseBtn">Guardar análise</button>
+      <button class="secondary" id="exportarImagemBtn">Exportar imagem</button>
     </div>
     <p class="status" id="squadStatus"></p>
     <div class="row">
@@ -788,7 +824,6 @@
     <div class="view-tabs">
       <button class="view-tab active" id="tabListaBtn">Lista</button>
       <button class="view-tab" id="tabCampoBtn">Campo</button>
-      <button class="secondary" id="exportarImagemBtn" style="margin-left: auto;">Exportar imagem</button>
     </div>
 
     <div id="squadList"></div>
@@ -949,10 +984,20 @@
     autoSave();
   });
 
+  const ANALISE_VERSAO_ATUAL = 1;
+
+  function showToast(mensagem) {
+    const toast = document.createElement("div");
+    toast.className = "toast";
+    toast.textContent = mensagem;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+  }
+
   function autoSave() {
     if (!players.length) return;
     const dados = {
-      versao: 1,
+      versao: ANALISE_VERSAO_ATUAL,
       clube: {
         nome: squadClubName.textContent || "",
         logo: squadClubLogo.src || ""
@@ -987,6 +1032,7 @@
       resumeBtn.onclick = () => {
         restaurarAnalise(dados);
         resumeBanner.classList.add("hidden");
+        showToast("Análise retomada ✓");
       };
       discardResumeBtn.onclick = () => {
         localStorage.removeItem(AUTO_SAVE_KEY);
@@ -1254,7 +1300,7 @@
 
   guardarAnaliseBtn.addEventListener("click", () => {
     const analise = {
-      versao: 1,
+      versao: ANALISE_VERSAO_ATUAL,
       clube: {
         nome: squadClubName.textContent || "",
         logo: squadClubLogo.src || ""
@@ -1270,6 +1316,7 @@
     link.href = url;
     link.click();
     URL.revokeObjectURL(url);
+    showToast("Análise guardada ✓");
   });
 
   carregarAnaliseBtn.addEventListener("click", () => {
@@ -1288,7 +1335,11 @@
         if (!analise || !Array.isArray(analise.jogadores)) {
           throw new Error("O ficheiro não parece ser uma análise guardada válida.");
         }
+        const versaoMaisRecente = analise.versao && analise.versao > ANALISE_VERSAO_ATUAL;
         restaurarAnalise(analise);
+        showToast(versaoMaisRecente
+          ? "Análise carregada — ficheiro de uma versão mais recente, alguns dados podem faltar"
+          : "Análise carregada ✓");
       } catch (err) {
         carregarAnaliseError.textContent = "Não foi possível ler o ficheiro: " + err.message;
       }
@@ -1804,7 +1855,7 @@
     const opcoes = [
       { estado: "fica", label: "Fica" },
       { estado: "sai", label: "Sai" },
-      { estado: "emprestado", label: "Empréstimo" },
+      { estado: "emprestado", label: "Emprést." },
       { estado: "fora", label: "Fora" }
     ];
     opcoes.forEach((op) => {
@@ -2131,6 +2182,7 @@
       link.download = (squadClubName.textContent || "plantel").trim().replace(/\s+/g, "_") + "_diretor-desportivo.png";
       link.href = canvas.toDataURL("image/png");
       link.click();
+      showToast("Imagem descarregada ✓");
     } catch (err) {
       alert("Não foi possível gerar a imagem: " + err.message);
     } finally {
