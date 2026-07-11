@@ -1,4 +1,6 @@
-# Diretor Desportivo — convenções do projeto
+# Janela Aberta (Diretor Desportivo) — convenções do projeto
+
+> Nome da app decidido pelo utilizador a 2026-07-09, no âmbito de tornar o repositório público para publicar no GitHub Pages. O repositório GitHub e a pasta local mantêm-se `app-dir_desportivo`/`dir_desportivo` — só o nome apresentado na app (título da página, cabeçalho, imagem exportada) mudou.
 
 ## Quem é o utilizador
 Estudante de mestrado em Ciência de Dados, não programador. Todo o código é escrito e mantido pelo Claude. As explicações de passos técnicos (instalar, testar, publicar) devem ser em **português europeu**, sem jargão técnico desnecessário. O utilizador dedica ~2h/semana ao projeto: entregáveis pequenos, um de cada vez, testados no browser antes de avançar.
@@ -74,7 +76,7 @@ Decisão do utilizador a 2026-07-08: além dos estados por jogador, existe uma l
   - **Mobile (≤480px, decisão do utilizador a 2026-07-09):** cada zona passa a ter largura fixa de 70px (sem esticar), e o relvado ganha scroll horizontal próprio quando a soma das zonas não cabe no ecrã — garante que nenhuma zona fica espremida a ponto de ser ilegível ou impossível de usar com o dedo, e mantém as colunas alinhadas entre linhas mesmo com scroll. Acima de 480px mantém-se o comportamento original (zonas a esticar para preencher a largura, sem scroll).
 
 ## Partilha
-- Imagem: PNG com cabeçalho (nome do clube + saldo), o campo (só Fica/Entra, **espelhando a sub-vista ativa no momento** — simples ou detalhada, decisão do utilizador a 2026-07-09) e, por baixo, quatro listas compactas "Saem", "Entram", "Outros ganhos" e "Outros custos" com valores associados e uma **linha de total por lista**, e uma assinatura discreta "Diretor Desportivo" no rodapé. Fotos convertidas para data URL antes da exportação (contorna CORS do CDN); se uma foto falhar, usa iniciais em vez de bloquear a exportação toda.
+- Imagem: PNG com cabeçalho (nome do clube + saldo), o campo (só Fica/Entra, **espelhando a sub-vista ativa no momento** — simples ou detalhada, decisão do utilizador a 2026-07-09) e, por baixo, quatro listas compactas "Saem", "Entram", "Outros ganhos" e "Outros custos" com valores associados e uma **linha de total por lista**, e uma assinatura discreta "Janela Aberta" no rodapé. Fotos convertidas para data URL antes da exportação (contorna CORS do CDN); se uma foto falhar, usa iniciais em vez de bloquear a exportação toda.
 - **Formato vertical para stories** (decisão do utilizador a 2026-07-09): botão "Exportar para stories" gera a mesma imagem mas mais estreita (480px) e com as quatro listas empilhadas em coluna em vez de lado a lado — pensado para partilhar em Instagram/WhatsApp stories.
 - **Link** (decisão do utilizador a 2026-07-09, retomado do backlog): botão "Copiar link" codifica o cenário completo (base64 do JSON, sem compressão extra para não reabrir a arquitetura de bibliotecas) num URL com âncora `#dados=...`; quem abre o link vê o cenário sem precisar de chave. Ao carregar, a âncora é removida do URL (`history.replaceState`) para que um refresh seguinte não reponha silenciosamente o cenário original por cima de edições entretanto feitas — usa antes a guardação automática normal a partir desse momento. Nota: o link fica comprido (não é encurtado), aceitável para colar num chat mas não é elegante.
 
