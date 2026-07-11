@@ -197,6 +197,32 @@
     margin-bottom: 16px;
   }
 
+  .orcamento-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .orcamento-row label {
+    margin-bottom: 0;
+    white-space: nowrap;
+  }
+  .orcamento-row input[type="number"] {
+    max-width: 100px;
+  }
+
+  .nota-input {
+    flex: 1;
+    min-width: 70px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 0.8rem;
+    color: var(--text);
+    font-family: var(--font-body);
+  }
+
   @keyframes toast-in-out {
     0% { opacity: 0; transform: translate(-50%, 12px); }
     10% { opacity: 1; transform: translate(-50%, 0); }
@@ -797,14 +823,21 @@
         <span class="saldo-value" id="saldoValue">0,0 M€</span>
       </div>
     </div>
+    <div class="orcamento-row">
+      <label for="orcamentoInicialInput">Orçamento inicial (M€)</label>
+      <input type="number" id="orcamentoInicialInput" step="0.1" placeholder="0">
+    </div>
     <div class="actions-bar">
       <button class="secondary" id="guardarAnaliseBtn">Guardar análise</button>
       <button class="secondary" id="exportarImagemBtn">Exportar imagem</button>
+      <button class="secondary" id="exportarStoryBtn">Exportar para stories</button>
+      <button class="secondary" id="copiarLinkBtn">Copiar link</button>
     </div>
     <p class="status" id="squadStatus"></p>
     <div class="row">
       <button class="secondary" id="toggleReforcoBtn">+ Adicionar reforço</button>
       <button class="secondary" id="toggleGanhoBtn">+ Adicionar ganho extra</button>
+      <button class="secondary" id="toggleCustoBtn">+ Adicionar outro custo</button>
     </div>
     <div class="reforco-form hidden" id="reforcoForm">
       <div><input type="text" id="reforcoNome" placeholder="Nome do reforço"></div>
@@ -819,11 +852,21 @@
       <div><input type="number" id="ganhoValor" placeholder="Valor (M€)" min="0" step="0.1"></div>
       <button id="confirmGanhoBtn">Adicionar</button>
     </div>
+    <div class="reforco-form hidden" id="custoForm">
+      <div><input type="text" id="custoDescricao" placeholder="Descrição (ex.: Comissão de agente)"></div>
+      <div><input type="number" id="custoValor" placeholder="Valor (M€)" min="0" step="0.1"></div>
+      <button id="confirmCustoBtn">Adicionar</button>
+    </div>
     <div id="ganhosExtraList" class="ganhos-extra-list"></div>
+    <div id="custosExtraList" class="ganhos-extra-list"></div>
 
     <div class="view-tabs">
       <button class="view-tab active" id="tabListaBtn">Lista</button>
       <button class="view-tab" id="tabCampoBtn">Campo</button>
+    </div>
+
+    <div class="row" style="margin-bottom: 10px;">
+      <div><input type="text" id="filtroNomeInput" placeholder="Procurar jogador por nome..."></div>
     </div>
 
     <div id="squadList"></div>
@@ -893,6 +936,9 @@
   let players = [];
   let openEditorId = null;
   let extraGanhos = [];
+  let extraCustos = [];
+  let orcamentoInicial = 0;
+  let filtroNome = "";
 
   const keyBlock = document.getElementById("keyBlock");
   const searchBlock = document.getElementById("searchBlock");
@@ -928,6 +974,15 @@
   const ganhoDescricao = document.getElementById("ganhoDescricao");
   const ganhoValor = document.getElementById("ganhoValor");
   const ganhosExtraList = document.getElementById("ganhosExtraList");
+  const toggleCustoBtn = document.getElementById("toggleCustoBtn");
+  const custoForm = document.getElementById("custoForm");
+  const custoDescricao = document.getElementById("custoDescricao");
+  const custoValor = document.getElementById("custoValor");
+  const custosExtraList = document.getElementById("custosExtraList");
+  const orcamentoInicialInput = document.getElementById("orcamentoInicialInput");
+  const filtroNomeInput = document.getElementById("filtroNomeInput");
+  const exportarStoryBtn = document.getElementById("exportarStoryBtn");
+  const copiarLinkBtn = document.getElementById("copiarLinkBtn");
   const corClubeInput = document.getElementById("corClubeInput");
   const guardarAnaliseBtn = document.getElementById("guardarAnaliseBtn");
   const carregarAnaliseBtn = document.getElementById("carregarAnaliseBtn");
@@ -994,28 +1049,38 @@
     setTimeout(() => toast.remove(), 2500);
   }
 
-  function autoSave() {
-    if (!players.length) return;
-    const dados = {
+  function construirDadosAnalise() {
+    return {
       versao: ANALISE_VERSAO_ATUAL,
       clube: {
         nome: squadClubName.textContent || "",
         logo: squadClubLogo.src || ""
       },
       corDestaque: corClubeInput.value,
+      orcamentoInicial: orcamentoInicial,
       jogadores: players,
-      ganhosExtra: extraGanhos
+      ganhosExtra: extraGanhos,
+      custosExtra: extraCustos
     };
-    localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(dados));
+  }
+
+  function autoSave() {
+    if (!players.length) return;
+    localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(construirDadosAnalise()));
   }
 
   function restaurarAnalise(dados) {
     players = dados.jogadores;
     extraGanhos = Array.isArray(dados.ganhosExtra) ? dados.ganhosExtra : [];
+    extraCustos = Array.isArray(dados.custosExtra) ? dados.custosExtra : [];
+    orcamentoInicial = parseFloat(dados.orcamentoInicial) || 0;
+    orcamentoInicialInput.value = orcamentoInicial || "";
     squadClubName.textContent = (dados.clube && dados.clube.nome) || "";
     squadClubLogo.src = (dados.clube && dados.clube.logo) || "";
     squadClubLogo.style.visibility = squadClubLogo.src ? "visible" : "hidden";
     aplicarCorClube(dados.corDestaque || CLUBE_COR_DEFEITO);
+    filtroNome = "";
+    filtroNomeInput.value = "";
     renderSquad();
     showSquadScreen();
   }
@@ -1105,6 +1170,11 @@
     squadList.innerHTML = "";
     players = [];
     extraGanhos = [];
+    extraCustos = [];
+    orcamentoInicial = 0;
+    orcamentoInicialInput.value = "";
+    filtroNome = "";
+    filtroNomeInput.value = "";
     aplicarCorClube(CLUBE_COR_DEFEITO);
     carregarAnaliseError.textContent = "";
     showSearchScreen();
@@ -1171,13 +1241,19 @@
           estado: "fica",
           valor: null,
           clubPct: 100,
-          isReforco: false
+          isReforco: false,
+          nota: null
         };
       });
       squadClubName.textContent = teamName;
       squadClubLogo.style.visibility = "visible";
       squadClubLogo.src = teamLogo || "";
       extraGanhos = [];
+      extraCustos = [];
+      orcamentoInicial = 0;
+      orcamentoInicialInput.value = "";
+      filtroNome = "";
+      filtroNomeInput.value = "";
       aplicarCorClube(CLUBE_COR_DEFEITO);
       renderSquad();
       showSquadScreen();
@@ -1239,7 +1315,8 @@
       estado: "entra",
       valor: valor,
       clubPct: 100,
-      isReforco: true
+      isReforco: true,
+      nota: null
     });
     reforcoNome.value = "";
     reforcoValor.value = "";
@@ -1298,17 +1375,70 @@
     });
   }
 
+  toggleCustoBtn.addEventListener("click", () => {
+    custoForm.classList.toggle("hidden");
+  });
+
+  document.getElementById("confirmCustoBtn").addEventListener("click", () => {
+    const descricao = custoDescricao.value.trim();
+    const valor = parseFloat(custoValor.value);
+    if (!descricao) {
+      alert("Escreve uma descrição para o custo.");
+      return;
+    }
+    if (isNaN(valor) || valor < 0) {
+      alert("Introduz um valor válido para o custo.");
+      return;
+    }
+    extraCustos.push({ id: "custo-" + Date.now(), descricao: descricao, valor: valor });
+    custoDescricao.value = "";
+    custoValor.value = "";
+    custoForm.classList.add("hidden");
+    renderSquad();
+  });
+
+  function renderCustosExtra() {
+    custosExtraList.innerHTML = "";
+    extraCustos.forEach((custo) => {
+      const item = document.createElement("div");
+      item.className = "ganho-extra-item";
+
+      const desc = document.createElement("span");
+      desc.className = "ganho-descricao";
+      desc.textContent = custo.descricao;
+      item.appendChild(desc);
+
+      const valor = document.createElement("span");
+      valor.className = "ganho-valor";
+      valor.style.color = "var(--signal-red)";
+      valor.textContent = "-" + parseFloat(custo.valor).toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€";
+      item.appendChild(valor);
+
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "remove-link";
+      removeBtn.textContent = "Remover";
+      removeBtn.addEventListener("click", () => {
+        extraCustos = extraCustos.filter((c) => c !== custo);
+        renderSquad();
+      });
+      item.appendChild(removeBtn);
+
+      custosExtraList.appendChild(item);
+    });
+  }
+
+  orcamentoInicialInput.addEventListener("input", () => {
+    orcamentoInicial = parseFloat(orcamentoInicialInput.value) || 0;
+    updateSaldoDisplay();
+  });
+
+  filtroNomeInput.addEventListener("input", () => {
+    filtroNome = filtroNomeInput.value.trim().toLowerCase();
+    renderSquad();
+  });
+
   guardarAnaliseBtn.addEventListener("click", () => {
-    const analise = {
-      versao: ANALISE_VERSAO_ATUAL,
-      clube: {
-        nome: squadClubName.textContent || "",
-        logo: squadClubLogo.src || ""
-      },
-      corDestaque: corClubeInput.value,
-      jogadores: players,
-      ganhosExtra: extraGanhos
-    };
+    const analise = construirDadosAnalise();
     const blob = new Blob([JSON.stringify(analise, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -1364,7 +1494,8 @@
       return total;
     }, 0);
     const totalGanhosExtra = extraGanhos.reduce((total, g) => total + (parseFloat(g.valor) || 0), 0);
-    return totalJogadores + totalGanhosExtra;
+    const totalCustosExtra = extraCustos.reduce((total, c) => total + (parseFloat(c.valor) || 0), 0);
+    return orcamentoInicial + totalJogadores + totalGanhosExtra - totalCustosExtra;
   }
 
   function updateSaldoDisplay() {
@@ -1425,11 +1556,15 @@
     });
   }
 
+  function correspondeAoFiltro(p) {
+    return !filtroNome || p.name.toLowerCase().includes(filtroNome);
+  }
+
   function renderSquad() {
-    const emVista = visiveis();
-    const vendidos = players.filter((p) => p.estado === "sai");
-    const emprestados = players.filter((p) => p.estado === "emprestado");
-    const foraDaAnalise = players.filter((p) => p.estado === "fora");
+    const emVista = visiveis().filter(correspondeAoFiltro);
+    const vendidos = players.filter((p) => p.estado === "sai").filter(correspondeAoFiltro);
+    const emprestados = players.filter((p) => p.estado === "emprestado").filter(correspondeAoFiltro);
+    const foraDaAnalise = players.filter((p) => p.estado === "fora").filter(correspondeAoFiltro);
     squadStatus.textContent = emVista.length + " jogadores em análise" +
       (vendidos.length > 0 ? " · " + vendidos.length + " vendidos" : "") +
       (emprestados.length > 0 ? " · " + emprestados.length + " emprestados" : "") +
@@ -1496,6 +1631,7 @@
     }
 
     renderGanhosExtra();
+    renderCustosExtra();
     updateSaldoDisplay();
     renderCampo();
   }
@@ -1744,6 +1880,17 @@
       }
     }
 
+    const notaInput = document.createElement("input");
+    notaInput.type = "text";
+    notaInput.className = "nota-input";
+    notaInput.placeholder = "Nota (opcional)";
+    notaInput.value = player.nota || "";
+    notaInput.addEventListener("input", () => {
+      player.nota = notaInput.value;
+      autoSave();
+    });
+    rowBottom.appendChild(notaInput);
+
     row.appendChild(rowBottom);
 
     if (openEditorId === player.id) {
@@ -1908,6 +2055,7 @@
   }
 
   const EXPORT_WIDTH = 700;
+  const EXPORT_WIDTH_VERTICAL = 480;
 
   async function imageToDataURL(url) {
     try {
@@ -1984,7 +2132,7 @@
     return box;
   }
 
-  function construirListaGanhosExtra(titulo, lista, corDestaque) {
+  function construirListaValores(titulo, lista, corDestaque, sinal) {
     const box = document.createElement("div");
     box.style.cssText = "flex:1; background:#1D2C39; border-radius:8px; padding:10px; font-size:11px; font-family:'IBM Plex Sans', Arial, sans-serif; color:#EAEDEF;";
 
@@ -2011,22 +2159,23 @@
       valorTxt.style.cssText = "white-space:nowrap; font-family:'IBM Plex Mono', monospace;";
       const valor = parseFloat(g.valor) || 0;
       total += valor;
-      valorTxt.textContent = "+" + valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€";
+      valorTxt.textContent = sinal + valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€";
       linha.appendChild(desc);
       linha.appendChild(valorTxt);
       box.appendChild(linha);
     });
 
-    box.appendChild(construirLinhaTotal("Total", "+" + total.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€", corDestaque));
+    box.appendChild(construirLinhaTotal("Total", sinal + total.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€", corDestaque));
 
     return box;
   }
 
-  async function construirTemplateExportacao() {
+  async function construirTemplateExportacao(formatoVertical) {
     const emVista = visiveis();
     const saem = players.filter((p) => p.estado === "sai");
     const entram = players.filter((p) => p.estado === "entra");
     const corDestaque = getComputedStyle(document.documentElement).getPropertyValue("--brass").trim() || "#B8955A";
+    const largura = formatoVertical ? EXPORT_WIDTH_VERTICAL : EXPORT_WIDTH;
 
     const fotosCache = {};
     const logoSrc = squadClubLogo.style.visibility !== "hidden" && squadClubLogo.src ? await imageToDataURL(squadClubLogo.src) : null;
@@ -2037,7 +2186,7 @@
     );
 
     const container = document.createElement("div");
-    container.style.cssText = "position:fixed; left:-9999px; top:0; width:" + EXPORT_WIDTH +
+    container.style.cssText = "position:fixed; left:-9999px; top:0; width:" + largura +
       "px; background:#0E1A24; padding:20px; font-family:'IBM Plex Sans', Arial, sans-serif; color:#EAEDEF;";
 
     const header = document.createElement("div");
@@ -2159,27 +2308,32 @@
     container.appendChild(pitch);
 
     const listas = document.createElement("div");
-    listas.style.cssText = "display:flex; gap:16px; margin-top:14px;";
+    listas.style.cssText = "display:flex; gap:16px; margin-top:14px;" + (formatoVertical ? " flex-direction:column;" : "");
     listas.appendChild(construirListaTransferencias("Saem", saem, "sai", corDestaque));
     listas.appendChild(construirListaTransferencias("Entram", entram, "entra", corDestaque));
-    listas.appendChild(construirListaGanhosExtra("Outros ganhos", extraGanhos, corDestaque));
+    listas.appendChild(construirListaValores("Outros ganhos", extraGanhos, corDestaque, "+"));
+    listas.appendChild(construirListaValores("Outros custos", extraCustos, corDestaque, "-"));
     container.appendChild(listas);
+
+    const assinatura = document.createElement("div");
+    assinatura.style.cssText = "text-align:center; font-size:9px; letter-spacing:0.08em; text-transform:uppercase; color:#5B6B7A; margin-top:14px;";
+    assinatura.textContent = "Diretor Desportivo";
+    container.appendChild(assinatura);
 
     return container;
   }
 
-  document.getElementById("exportarImagemBtn").addEventListener("click", async () => {
-    const exportBtn = document.getElementById("exportarImagemBtn");
+  async function exportarImagem(exportBtn, formatoVertical, sufixoFicheiro) {
     const textoOriginal = exportBtn.textContent;
     exportBtn.disabled = true;
     exportBtn.textContent = "A gerar imagem...";
     let template = null;
     try {
-      template = await construirTemplateExportacao();
+      template = await construirTemplateExportacao(formatoVertical);
       document.body.appendChild(template);
       const canvas = await html2canvas(template, { backgroundColor: "#0E1A24", scale: 2 });
       const link = document.createElement("a");
-      link.download = (squadClubName.textContent || "plantel").trim().replace(/\s+/g, "_") + "_diretor-desportivo.png";
+      link.download = (squadClubName.textContent || "plantel").trim().replace(/\s+/g, "_") + sufixoFicheiro + ".png";
       link.href = canvas.toDataURL("image/png");
       link.click();
       showToast("Imagem descarregada ✓");
@@ -2190,7 +2344,51 @@
       exportBtn.disabled = false;
       exportBtn.textContent = textoOriginal;
     }
+  }
+
+  document.getElementById("exportarImagemBtn").addEventListener("click", (e) => {
+    exportarImagem(e.currentTarget, false, "_diretor-desportivo");
   });
+
+  exportarStoryBtn.addEventListener("click", (e) => {
+    exportarImagem(e.currentTarget, true, "_diretor-desportivo_story");
+  });
+
+  function codificarEstado(obj) {
+    return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+  }
+
+  function descodificarEstado(str) {
+    return JSON.parse(decodeURIComponent(escape(atob(str))));
+  }
+
+  copiarLinkBtn.addEventListener("click", async () => {
+    const dados = construirDadosAnalise();
+    const link = location.origin + location.pathname + "#dados=" + codificarEstado(dados);
+    try {
+      await navigator.clipboard.writeText(link);
+      showToast("Link copiado ✓");
+    } catch (e) {
+      prompt("Copia o link manualmente:", link);
+    }
+  });
+
+  function carregarEstadoDoLink() {
+    const hash = location.hash;
+    const marcador = "#dados=";
+    if (!hash.startsWith(marcador)) return false;
+    try {
+      const dados = descodificarEstado(hash.slice(marcador.length));
+      if (!dados || !Array.isArray(dados.jogadores)) return false;
+      history.replaceState(null, "", location.pathname + location.search);
+      showSearchScreen();
+      restaurarAnalise(dados);
+      showToast("Cenário partilhado carregado ✓");
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 
   // Arranque
   if (getKey()) {
@@ -2198,7 +2396,9 @@
   } else {
     showKeyScreen();
   }
-  checkAutoSave();
+  if (!carregarEstadoDoLink()) {
+    checkAutoSave();
+  }
 </script>
 
 </body>
