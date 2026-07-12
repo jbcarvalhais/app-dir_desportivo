@@ -689,7 +689,7 @@
     gap: 3px;
   }
   .campo-zona-stack .campo-zona {
-    flex: 1;
+    flex: 1 0 auto;
     min-height: 29px;
   }
   .campo-zona-stack .campo-zona .campo-zona-label {
@@ -763,6 +763,9 @@
   .campo-chip .campo-nome.reforco-indefinido {
     font-weight: 700;
     color: var(--signal-green-fill);
+  }
+  .campo-chip .campo-nome.campo-nome-reforco {
+    font-weight: 700;
   }
   .campo-chip-secundaria {
     opacity: 0.55;
@@ -1818,7 +1821,7 @@
     }
 
     const nome = document.createElement("span");
-    nome.className = "campo-nome" + (nomeIndefinido ? " reforco-indefinido" : "");
+    nome.className = "campo-nome" + (nomeIndefinido ? " reforco-indefinido" : (player.isReforco ? " campo-nome-reforco" : ""));
     nome.textContent = nomeIndefinido ? "Reforço" : player.name;
     chip.appendChild(nome);
 
@@ -2087,6 +2090,9 @@
     });
     select.addEventListener("change", () => {
       player.estado = select.value;
+      if (player.estado === "reserva") {
+        moverJogadorNoArray(player, (p) => p.posPrincipal === player.posPrincipal, Infinity);
+      }
       renderSquad();
     });
     return select;
@@ -2326,7 +2332,7 @@
       }
 
       const nome = document.createElement("span");
-      nome.style.cssText = "overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" + (nomeIndefinido ? " font-weight:700; color:#1F7A50;" : "");
+      nome.style.cssText = "overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" + (nomeIndefinido ? " font-weight:700; color:#1F7A50;" : (player.isReforco ? " font-weight:700;" : ""));
       nome.textContent = nomeIndefinido ? "Reforço" : player.name;
       chip.appendChild(nome);
 
