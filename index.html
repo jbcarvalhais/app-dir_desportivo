@@ -329,10 +329,29 @@
     border-bottom: 1px solid var(--border);
   }
   .player:last-child { border-bottom: none; }
+  .player.reforco-row {
+    border-left: 3px solid var(--signal-green-fill);
+    padding-left: 8px;
+    background: rgba(31, 122, 80, 0.08);
+  }
   .player-row-top {
     display: flex;
     align-items: center;
     gap: 8px;
+  }
+  .player-row-top input[type="text"]::placeholder {
+    color: var(--muted);
+  }
+  .player-row-top input[type="text"].nome-reforco {
+    font-weight: 700;
+  }
+  .player-row-top input[type="text"].nome-indefinido::placeholder {
+    color: var(--signal-green);
+    font-weight: 700;
+  }
+  .avatar-placeholder.indefinido {
+    background: var(--signal-green-fill);
+    color: var(--text);
   }
   .player-row-top input[type="text"] {
     flex: 1;
@@ -376,7 +395,18 @@
     font-family: var(--font-mono);
     flex-shrink: 0;
   }
-  .numero-wrap input[type="number"] { width: 46px; }
+  .numero-wrap input[type="number"] {
+    width: 58px;
+    flex-shrink: 0;
+  }
+  .numero-wrap input[type="number"]::-webkit-inner-spin-button,
+  .numero-wrap input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .numero-wrap input[type="number"] {
+    -moz-appearance: textfield;
+  }
 
   .drag-handle {
     cursor: grab;
@@ -539,15 +569,15 @@
   .mini-campo-linha.compact .mini-campo-zona { flex: 0 1 64px; }
   .mini-campo-zona {
     flex: 1;
-    min-height: 26px;
-    min-width: 28px;
+    min-height: 28px;
+    min-width: 30px;
     border: 1px dashed rgba(255,255,255,0.35);
     border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: var(--font-display);
-    font-size: 0.55rem;
+    font-size: 0.64rem;
     letter-spacing: 0.02em;
     color: rgba(255,255,255,0.85);
     cursor: pointer;
@@ -576,8 +606,8 @@
   }
   .mini-campo-zona-stack .mini-campo-zona {
     flex: 1;
-    min-height: 12px;
-    font-size: 0.44rem;
+    min-height: 14px;
+    font-size: 0.5rem;
   }
   .mini-campo-zona.spacer {
     border-color: transparent;
@@ -704,6 +734,14 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .campo-chip .campo-avatar-placeholder.indefinido {
+    background: var(--signal-green-fill);
+    color: var(--text);
+  }
+  .campo-chip .campo-nome.reforco-indefinido {
+    font-weight: 700;
+    color: var(--signal-green-fill);
+  }
   .campo-chip-secundaria {
     opacity: 0.55;
     transform: scale(0.9);
@@ -750,7 +788,7 @@
   @media (max-width: 480px) {
     .avatar, .avatar-placeholder { width: 30px; height: 30px; }
     .player-row-top input[type="text"] { min-width: 56px; }
-    .numero-wrap input[type="number"] { width: 40px; }
+    .numero-wrap input[type="number"] { width: 46px; }
     .value-fields input[type="number"] { width: 48px; }
     .value-fields { gap: 4px; }
 
@@ -843,7 +881,7 @@
       <button class="secondary" id="toggleCustoBtn">+ Adicionar outro custo</button>
     </div>
     <div class="reforco-form hidden" id="reforcoForm">
-      <div><input type="text" id="reforcoNome" placeholder="Nome do reforço"></div>
+      <div><input type="text" id="reforcoNome" placeholder="Nome do reforço (opcional)"></div>
       <div>
         <select id="reforcoPosicao"></select>
       </div>
@@ -1300,10 +1338,6 @@
   document.getElementById("confirmReforcoBtn").addEventListener("click", () => {
     const nome = reforcoNome.value.trim();
     const valor = parseFloat(reforcoValor.value);
-    if (!nome) {
-      alert("Escreve o nome do reforço.");
-      return;
-    }
     if (isNaN(valor) || valor < 0) {
       alert("Introduz um valor válido para o reforço.");
       return;
@@ -1724,6 +1758,7 @@
   }
 
   function renderCampoChip(player, isSecundaria) {
+    const nomeIndefinido = player.isReforco && !player.name.trim();
     const chip = document.createElement("div");
     chip.className = "campo-chip" +
       (isSecundaria ? " campo-chip-secundaria" : "") +
@@ -1751,14 +1786,14 @@
       chip.appendChild(img);
     } else {
       const ph = document.createElement("div");
-      ph.className = "campo-avatar-placeholder";
-      ph.textContent = initials(player.name);
+      ph.className = "campo-avatar-placeholder" + (nomeIndefinido ? " indefinido" : "");
+      ph.textContent = nomeIndefinido ? "?" : initials(player.name);
       chip.appendChild(ph);
     }
 
     const nome = document.createElement("span");
-    nome.className = "campo-nome";
-    nome.textContent = player.name;
+    nome.className = "campo-nome" + (nomeIndefinido ? " reforco-indefinido" : "");
+    nome.textContent = nomeIndefinido ? "Reforço" : player.name;
     chip.appendChild(nome);
 
     return chip;
@@ -1766,8 +1801,9 @@
 
   function renderPlayerRow(player) {
     const linha = lineOf(player.posPrincipal);
+    const nomeIndefinido = player.isReforco && !player.name.trim();
     const row = document.createElement("div");
-    row.className = "player";
+    row.className = "player" + (player.isReforco ? " reforco-row" : "");
     row.dataset.playerId = String(player.id);
 
     const rowTop = document.createElement("div");
@@ -1793,15 +1829,22 @@
       rowTop.appendChild(img);
     } else {
       const ph = document.createElement("div");
-      ph.className = "avatar-placeholder";
-      ph.textContent = initials(player.name);
+      ph.className = "avatar-placeholder" + (nomeIndefinido ? " indefinido" : "");
+      ph.textContent = nomeIndefinido ? "?" : initials(player.name);
       rowTop.appendChild(ph);
     }
 
     const nameInput = document.createElement("input");
     nameInput.type = "text";
     nameInput.value = player.name;
-    nameInput.addEventListener("input", () => { player.name = nameInput.value; autoSave(); });
+    nameInput.placeholder = player.isReforco ? "Reforço" : "Nome";
+    nameInput.className = player.isReforco ? "nome-reforco" : "";
+    if (nomeIndefinido) nameInput.classList.add("nome-indefinido");
+    nameInput.addEventListener("input", () => {
+      player.name = nameInput.value;
+      nameInput.classList.toggle("nome-indefinido", player.isReforco && !nameInput.value.trim());
+      autoSave();
+    });
     rowTop.appendChild(nameInput);
 
     const numeroWrap = document.createElement("span");
@@ -2111,7 +2154,7 @@
       const linha = document.createElement("div");
       linha.style.cssText = "display:flex; justify-content:space-between; gap:8px; padding:3px 0; border-bottom:1px solid #24343F;";
       const nome = document.createElement("span");
-      nome.textContent = p.name;
+      nome.textContent = p.name && p.name.trim() ? p.name : "Reforço";
       const valorTxt = document.createElement("span");
       valorTxt.style.cssText = "white-space:nowrap; font-family:'IBM Plex Mono', monospace;";
       const valor = parseFloat(p.valor) || 0;
@@ -2227,6 +2270,7 @@
     pitch.style.cssText = "background:linear-gradient(180deg, #1F6F45, #123B26); border-radius:10px; padding:10px; display:flex; flex-direction:column-reverse; gap:4px;";
 
     function buildExportChip(player, isSecundaria) {
+      const nomeIndefinido = player.isReforco && !player.name.trim();
       const chip = document.createElement("div");
       chip.style.cssText = "background:#F0F2F4; color:#1C242B; border-radius:5px; padding:2px 4px; display:flex; align-items:center; gap:3px; font-size:" + (isSecundaria ? "9px" : "10px") + "; opacity:" + (isSecundaria ? "0.55" : "1") + "; border-left:3px solid " +
         (isSecundaria ? corDestaque : player.estado === "entra" ? "#1F7A50" : "transparent") + ";" +
@@ -2246,14 +2290,14 @@
         chip.appendChild(img);
       } else {
         const ph = document.createElement("div");
-        ph.style.cssText = "width:" + (isSecundaria ? "13px" : "16px") + "; height:" + (isSecundaria ? "13px" : "16px") + "; border-radius:50%; background:#C7CFD6; color:#1C242B; display:flex; align-items:center; justify-content:center; font-size:7px; font-weight:700; flex-shrink:0;";
-        ph.textContent = initials(player.name);
+        ph.style.cssText = "width:" + (isSecundaria ? "13px" : "16px") + "; height:" + (isSecundaria ? "13px" : "16px") + "; border-radius:50%; background:" + (nomeIndefinido ? "#1F7A50" : "#C7CFD6") + "; color:" + (nomeIndefinido ? "#EAEDEF" : "#1C242B") + "; display:flex; align-items:center; justify-content:center; font-size:7px; font-weight:700; flex-shrink:0;";
+        ph.textContent = nomeIndefinido ? "?" : initials(player.name);
         chip.appendChild(ph);
       }
 
       const nome = document.createElement("span");
-      nome.style.cssText = "overflow:hidden; text-overflow:ellipsis; white-space:nowrap;";
-      nome.textContent = player.name;
+      nome.style.cssText = "overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" + (nomeIndefinido ? " font-weight:700; color:#1F7A50;" : "");
+      nome.textContent = nomeIndefinido ? "Reforço" : player.name;
       chip.appendChild(nome);
 
       return chip;

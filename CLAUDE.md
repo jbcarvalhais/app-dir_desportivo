@@ -58,6 +58,8 @@ Valores em milhões de euros (€M), sempre introduzidos manualmente pelo utiliz
 
 **Orçamento inicial e Outros custos (decisão do utilizador a 2026-07-09):** o saldo pode partir de um valor base ("Orçamento inicial", editável no topo do plantel, default 0) em vez de começar sempre em 0. Simétrico a "Outros ganhos" existe "Outros custos" — lista de entradas manuais (Descrição + Valor) que **subtraem** ao saldo (ex.: comissões de agentes). Saldo final = orçamento inicial + vendas + reforços (negativo) + outros ganhos − outros custos.
 
+**Reforço sem nome definido (decisão do utilizador a 2026-07-12):** o campo "Nome" no formulário de reforço é opcional — permite reservar uma posição e um valor para "sei que vou gastar X, mas ainda não sei em quem" antes de saber o nome do alvo. Um reforço sem nome aparece com "Reforço" a negrito (cor de destaque "Entra") em vez de nome, e um "?" em vez de iniciais, tanto na Lista como no Campo e na imagem exportada. Assim que o utilizador escrever um nome, a app volta ao aspeto normal automaticamente. **Todos os reforços (com ou sem nome) têm destaque visual próprio na Lista** — contorno e fundo ligeiramente verdes, nome sempre a negrito — para nunca se confundirem com jogadores que transitam do plantel importado.
+
 > Nota sobre visibilidade: tal como "Fora da análise", os jogadores marcados "Sai" ou "Empréstimo" também deixam de aparecer na Lista e no Campo principais (decisão do utilizador a 2026-07-07 para "Sai", estendida a "Empréstimo" a 2026-07-08) — ficam em secções à parte ("Vendidos" / "Emprestados"), recuperáveis (basta voltar a marcar "Fica"). O valor de venda continua sempre a contar no saldo, mesmo escondido da vista principal; o empréstimo nunca tem valor associado.
 
 > Nota sobre a percentagem na venda: o campo pede diretamente "percentagem que fica no clube" (default 100%), não uma percentagem de corte/retenção a subtrair. Ex.: vendido por 10M€, clube fica com 80% → soma 8M€. Decisão do utilizador a 2026-07-05, mais intuitiva do que a formulação original com "retenção".
@@ -110,6 +112,7 @@ Além do ficheiro `.json` manual, a app guarda uma cópia completa do cenário e
 16. Orçamento inicial, "Outros custos", filtro por nome na Lista, nota livre por jogador, partilha por link, e exportação em formato vertical para stories. ✅
 17. Publicar no GitHub Pages. ✅ Repositório tornado público a 2026-07-12 para o Pages funcionar sem plano pago (Pages a partir de repositório privado exige GitHub Pro/Team/Enterprise; a partir de público é sempre gratuito — sem risco de conteúdo, não há segredos no código). App publicada em `https://jbcarvalhais.github.io/app-dir_desportivo/`, testada com sucesso num telemóvel real.
 18. Correções depois de testar num telemóvel real: exportação de imagem cortava as posições do lado direito, zonas do Campo com scroll horizontal em excesso, botões demasiado grandes em ecrã estreito. ✅
+19. Reforço sem nome definido (visual próprio), destaque visual para todos os reforços na Lista, campo de número maior (sem espremer, sem setas), e letra maior no mini-campo do editor de posições. ✅
 
 ## Riscos conhecidos
 - Plantel importado reflete a época terminada, não as transferências do mês corrente — o utilizador corrige à mão.
