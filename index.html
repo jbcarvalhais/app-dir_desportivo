@@ -755,9 +755,12 @@
     .value-fields { gap: 4px; }
 
     .campo-linha { min-width: max-content; }
-    .campo-zona { flex: 0 0 70px; min-width: 70px; }
-    .campo-zona-stack { flex: 0 0 70px; min-width: 70px; }
-    .campo-linha.compact .campo-zona { flex: 0 0 110px; }
+    .campo-zona { flex: 0 0 58px; min-width: 58px; }
+    .campo-zona-stack { flex: 0 0 58px; min-width: 58px; }
+    .campo-linha.compact .campo-zona { flex: 0 0 100px; }
+
+    button { padding: 7px 12px; font-size: 0.85rem; }
+    .actions-bar, .row { gap: 6px; }
   }
 </style>
 </head>
@@ -2331,7 +2334,16 @@
     try {
       template = await construirTemplateExportacao(formatoVertical);
       document.body.appendChild(template);
-      const canvas = await html2canvas(template, { backgroundColor: "#0E1A24", scale: 2 });
+      const larguraCaptura = template.scrollWidth;
+      const alturaCaptura = template.scrollHeight;
+      const canvas = await html2canvas(template, {
+        backgroundColor: "#0E1A24",
+        scale: 2,
+        width: larguraCaptura,
+        height: alturaCaptura,
+        windowWidth: larguraCaptura,
+        windowHeight: alturaCaptura
+      });
       const link = document.createElement("a");
       link.download = (squadClubName.textContent || "plantel").trim().replace(/\s+/g, "_") + sufixoFicheiro + ".png";
       link.href = canvas.toDataURL("image/png");
