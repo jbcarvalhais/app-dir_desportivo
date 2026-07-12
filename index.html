@@ -456,6 +456,12 @@
     border-color: var(--muted);
     opacity: 0.85;
   }
+  .estado-select.estado-reserva {
+    border-color: var(--muted);
+  }
+  .player.reserva-row {
+    opacity: 0.65;
+  }
 
   .value-fields {
     display: flex;
@@ -464,7 +470,18 @@
     font-size: 0.85rem;
     color: var(--muted);
   }
-  .value-fields input[type="number"] { width: 64px; }
+  .value-fields input[type="number"] {
+    width: 80px;
+    flex-shrink: 0;
+  }
+  .value-fields input[type="number"]::-webkit-inner-spin-button,
+  .value-fields input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .value-fields input[type="number"] {
+    -moz-appearance: textfield;
+  }
 
   .remove-link {
     background: none;
@@ -713,6 +730,11 @@
   }
   .campo-chip.chip-sai { border-left-color: var(--signal-red-fill); }
   .campo-chip.chip-entra { border-left-color: var(--signal-green-fill); }
+  .campo-chip.chip-emprestimo { border-left-color: var(--neutral-fill); }
+  .campo-chip.chip-reserva {
+    background: rgba(240, 242, 244, 0.4);
+  }
+  .badge.emprestimo { background: var(--neutral-fill); }
   .campo-chip .campo-avatar, .campo-chip .campo-avatar-placeholder {
     width: 18px;
     height: 18px;
@@ -789,7 +811,7 @@
     .avatar, .avatar-placeholder { width: 30px; height: 30px; }
     .player-row-top input[type="text"] { min-width: 56px; }
     .numero-wrap input[type="number"] { width: 46px; }
-    .value-fields input[type="number"] { width: 48px; }
+    .value-fields input[type="number"] { width: 62px; }
     .value-fields { gap: 4px; }
 
     .campo-linha { min-width: max-content; }
@@ -886,6 +908,9 @@
         <select id="reforcoPosicao"></select>
       </div>
       <div><input type="number" id="reforcoValor" placeholder="Valor (M€)" min="0" step="0.1"></div>
+      <label style="display:flex; align-items:center; gap:6px; margin-bottom:0; white-space:nowrap;">
+        <input type="checkbox" id="reforcoEmprestimo"> É empréstimo
+      </label>
       <button id="confirmReforcoBtn">Adicionar</button>
     </div>
     <div class="reforco-form hidden" id="ganhoForm">
@@ -1009,6 +1034,7 @@
   const reforcoNome = document.getElementById("reforcoNome");
   const reforcoPosicao = document.getElementById("reforcoPosicao");
   const reforcoValor = document.getElementById("reforcoValor");
+  const reforcoEmprestimo = document.getElementById("reforcoEmprestimo");
   reforcoPosicao.innerHTML = positionSelectHTML("CCB");
   const toggleGanhoBtn = document.getElementById("toggleGanhoBtn");
   const ganhoForm = document.getElementById("ganhoForm");
@@ -1337,11 +1363,8 @@
 
   document.getElementById("confirmReforcoBtn").addEventListener("click", () => {
     const nome = reforcoNome.value.trim();
-    const valor = parseFloat(reforcoValor.value);
-    if (isNaN(valor) || valor < 0) {
-      alert("Introduz um valor válido para o reforço.");
-      return;
-    }
+    const valorDigitado = parseFloat(reforcoValor.value);
+    const valor = !isNaN(valorDigitado) && valorDigitado >= 0 ? valorDigitado : 0;
     players.push({
       id: "reforco-" + Date.now(),
       name: nome,
@@ -1353,10 +1376,12 @@
       valor: valor,
       clubPct: 100,
       isReforco: true,
+      isEmprestimo: reforcoEmprestimo.checked,
       nota: null
     });
     reforcoNome.value = "";
     reforcoValor.value = "";
+    reforcoEmprestimo.checked = false;
     reforcoForm.classList.add("hidden");
     renderSquad();
   });
@@ -1762,7 +1787,8 @@
     const chip = document.createElement("div");
     chip.className = "campo-chip" +
       (isSecundaria ? " campo-chip-secundaria" : "") +
-      (player.estado === "sai" ? " chip-sai" : player.estado === "entra" ? " chip-entra" : "");
+      (player.estado === "sai" ? " chip-sai" : player.estado === "entra" ? (player.isEmprestimo ? " chip-emprestimo" : " chip-entra") : "") +
+      (player.estado === "reserva" ? " chip-reserva" : "");
     chip.dataset.playerId = String(player.id);
 
     if (player.numero) {
@@ -1803,7 +1829,7 @@
     const linha = lineOf(player.posPrincipal);
     const nomeIndefinido = player.isReforco && !player.name.trim();
     const row = document.createElement("div");
-    row.className = "player" + (player.isReforco ? " reforco-row" : "");
+    row.className = "player" + (player.isReforco ? " reforco-row" : "") + (player.estado === "reserva" ? " reserva-row" : "");
     row.dataset.playerId = String(player.id);
 
     const rowTop = document.createElement("div");
@@ -1871,8 +1897,8 @@
 
     if (player.isReforco) {
       const entraBadge = document.createElement("span");
-      entraBadge.className = "badge entra";
-      entraBadge.textContent = "ENTRA";
+      entraBadge.className = player.isEmprestimo ? "badge emprestimo" : "badge entra";
+      entraBadge.textContent = player.isEmprestimo ? "EMPRÉSTIMO" : "ENTRA";
       rowTop.appendChild(entraBadge);
     }
 
@@ -2047,6 +2073,7 @@
     select.className = "estado-select estado-" + player.estado;
     const opcoes = [
       { estado: "fica", label: "Fica" },
+      { estado: "reserva", label: "Reserva" },
       { estado: "sai", label: "Sai" },
       { estado: "emprestado", label: "Emprést." },
       { estado: "fora", label: "Fora" }
@@ -2154,16 +2181,16 @@
       const linha = document.createElement("div");
       linha.style.cssText = "display:flex; justify-content:space-between; gap:8px; padding:3px 0; border-bottom:1px solid #24343F;";
       const nome = document.createElement("span");
-      nome.textContent = p.name && p.name.trim() ? p.name : "Reforço";
+      nome.style.cssText = "overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0;";
+      nome.textContent = (p.name && p.name.trim() ? p.name : "Reforço") + (tipo === "entra" && p.isEmprestimo ? " (empréstimo)" : "");
       const valorTxt = document.createElement("span");
-      valorTxt.style.cssText = "white-space:nowrap; font-family:'IBM Plex Mono', monospace;";
+      valorTxt.style.cssText = "white-space:nowrap; font-family:'IBM Plex Mono', monospace; flex-shrink:0;";
       const valor = parseFloat(p.valor) || 0;
       if (tipo === "sai") {
         const pct = p.clubPct != null ? parseFloat(p.clubPct) : 100;
         const contribuicao = valor * (pct / 100);
         total += contribuicao;
-        valorTxt.textContent = valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€ (" + pct + "%) = " +
-          contribuicao.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€";
+        valorTxt.textContent = contribuicao.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€";
       } else {
         total -= valor;
         valorTxt.textContent = "-" + valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€";
@@ -2200,9 +2227,10 @@
       const linha = document.createElement("div");
       linha.style.cssText = "display:flex; justify-content:space-between; gap:8px; padding:3px 0; border-bottom:1px solid #24343F;";
       const desc = document.createElement("span");
+      desc.style.cssText = "overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0;";
       desc.textContent = g.descricao;
       const valorTxt = document.createElement("span");
-      valorTxt.style.cssText = "white-space:nowrap; font-family:'IBM Plex Mono', monospace;";
+      valorTxt.style.cssText = "white-space:nowrap; font-family:'IBM Plex Mono', monospace; flex-shrink:0;";
       const valor = parseFloat(g.valor) || 0;
       total += valor;
       valorTxt.textContent = sinal + valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€";
@@ -2271,9 +2299,11 @@
 
     function buildExportChip(player, isSecundaria) {
       const nomeIndefinido = player.isReforco && !player.name.trim();
+      const fundoChip = player.estado === "reserva" ? "rgba(240,242,244,0.4)" : "#F0F2F4";
+      const corBorda = isSecundaria ? corDestaque :
+        player.estado === "entra" ? (player.isEmprestimo ? "#3B4956" : "#1F7A50") : "transparent";
       const chip = document.createElement("div");
-      chip.style.cssText = "background:#F0F2F4; color:#1C242B; border-radius:5px; padding:2px 4px; display:flex; align-items:center; gap:3px; font-size:" + (isSecundaria ? "9px" : "10px") + "; opacity:" + (isSecundaria ? "0.55" : "1") + "; border-left:3px solid " +
-        (isSecundaria ? corDestaque : player.estado === "entra" ? "#1F7A50" : "transparent") + ";" +
+      chip.style.cssText = "background:" + fundoChip + "; color:#1C242B; border-radius:5px; padding:2px 4px; display:flex; align-items:center; gap:3px; font-size:" + (isSecundaria ? "9px" : "10px") + "; opacity:" + (isSecundaria ? "0.55" : "1") + "; border-left:3px solid " + corBorda + ";" +
         (isSecundaria ? " border-left-style:dashed;" : "");
 
       if (player.numero) {

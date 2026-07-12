@@ -49,12 +49,19 @@ Direção "sala de reuniões do clube": visual escuro e sóbrio, inspirado nas g
 | Estado | Efeito no saldo |
 |---|---|
 | Fica | 0 |
+| Reserva (fica no plantel, sem saldo, só visualmente secundário) | 0 |
 | Sai (vendido por V, o clube fica com p%) | + V × (p/100) |
 | Empréstimo (sai temporariamente, sem custos associados) | 0 |
 | Entra (reforço manual por V) | − V |
 | Fora da análise (removido, recuperável) | 0 |
 
 Valores em milhões de euros (€M), sempre introduzidos manualmente pelo utilizador. Saldo sempre visível, atualizado em tempo real.
+
+**Estado "Reserva" (decisão do utilizador a 2026-07-12):** ao contrário de "Sai"/"Empréstimo"/"Fora da análise", um jogador em "Reserva" **continua visível** na Lista e no Campo — só fica visualmente menos destacado (linha com opacidade reduzida na Lista; no Campo, o chip fica semitransparente, deixando o relvado transparecer, mas o nome mantém-se legível). Sem qualquer efeito no saldo. Serve para marcar suplentes/jogadores secundários sem os esconder da análise.
+
+**Reforços por empréstimo (decisão do utilizador a 2026-07-12):** o formulário de reforço tem uma checkbox "É empréstimo". Quando marcada, o valor deixa de ser obrigatório (default 0 se vazio, já que um empréstimo tipicamente não tem custo de compra) e o jogador aparece com o badge "EMPRÉSTIMO" (cor neutra) em vez de "ENTRA" (verde) — na Lista, no chip do Campo (contorno neutro em vez de verde) e na imagem exportada, para nunca se confundir uma contratação definitiva com uma cedência temporária.
+
+**Campo de valor mais largo (decisão do utilizador a 2026-07-12):** o campo numérico de valor (€M) nos cartões de jogador tinha largura insuficiente para números com casas decimais (ex.: "20,53" ficava cortado a "20,"). Alargado e sem as setas de incremento nativas do browser (que ocupavam espaço à toa).
 
 **Orçamento inicial e Outros custos (decisão do utilizador a 2026-07-09):** o saldo pode partir de um valor base ("Orçamento inicial", editável no topo do plantel, default 0) em vez de começar sempre em 0. Simétrico a "Outros ganhos" existe "Outros custos" — lista de entradas manuais (Descrição + Valor) que **subtraem** ao saldo (ex.: comissões de agentes). Saldo final = orçamento inicial + vendas + reforços (negativo) + outros ganhos − outros custos.
 
@@ -81,6 +88,7 @@ Decisão do utilizador a 2026-07-08: além dos estados por jogador, existe uma l
 - Imagem: PNG com cabeçalho (nome do clube + saldo), o campo (só Fica/Entra, **espelhando a sub-vista ativa no momento** — simples ou detalhada, decisão do utilizador a 2026-07-09) e, por baixo, quatro listas compactas "Saem", "Entram", "Outros ganhos" e "Outros custos" com valores associados e uma **linha de total por lista**, e uma assinatura discreta "Janela Aberta" no rodapé. Fotos convertidas para data URL antes da exportação (contorna CORS do CDN); se uma foto falhar, usa iniciais em vez de bloquear a exportação toda.
 - **Formato vertical para stories** (decisão do utilizador a 2026-07-09): botão "Exportar para stories" gera a mesma imagem mas mais estreita (480px) e com as quatro listas empilhadas em coluna em vez de lado a lado — pensado para partilhar em Instagram/WhatsApp stories.
 - **Link** (decisão do utilizador a 2026-07-09, retomado do backlog): botão "Copiar link" codifica o cenário completo (base64 do JSON, sem compressão extra para não reabrir a arquitetura de bibliotecas) num URL com âncora `#dados=...`; quem abre o link vê o cenário sem precisar de chave. Ao carregar, a âncora é removida do URL (`history.replaceState`) para que um refresh seguinte não reponha silenciosamente o cenário original por cima de edições entretanto feitas — usa antes a guardação automática normal a partir desse momento. Nota: o link fica comprido (não é encurtado), aceitável para colar num chat mas não é elegante.
+- **Listas da imagem exportada — arrumação (decisão do utilizador a 2026-07-12):** nomes compridos nas quatro listas (Saem/Entram/Outros ganhos/Outros custos) cortam com reticências numa única linha em vez de saltar para uma segunda linha, para as linhas ficarem sempre alinhadas. A lista "Saem" mostra só o valor final que conta para o saldo (já com a percentagem aplicada) — a fórmula "(pct%) =" foi removida por ser ruído visual; a percentagem em si continua editável na Lista normal. Jogadores "Entram" por empréstimo aparecem com "(empréstimo)" a seguir ao nome nesta lista.
 
 ## Guardar/carregar análise (decisão do utilizador a 2026-07-09)
 Botão "Guardar análise" descarrega um `.json` local com todo o estado do cenário: jogadores (estado, posições, valores), outros ganhos, nome/escudo do clube e cor de destaque escolhida. Botão "Carregar análise guardada" (no ecrã de procurar clube) lê esse ficheiro e repõe o cenário exatamente como estava — sem nenhuma chamada à API-Football, poupando o limite diário de pedidos. Pensado para continuar uma análise noutro dia ou computador sem reimportar o plantel. Cada ficheiro guardado inclui um campo `versao` (constante `ANALISE_VERSAO_ATUAL` no código); ao carregar um ficheiro com versão mais recente do que a app suporta, mostra um aviso mas continua a tentar carregar (aviso suave, não bloqueia).
