@@ -820,18 +820,20 @@
   }
   .campo-blob-layer {
     position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: visible;
+  }
+  .campo-blob-labels {
+    position: absolute;
     inset: 0;
     z-index: 0;
     pointer-events: none;
   }
-  .campo-blob {
-    position: absolute;
-    border-radius: 22px;
-  }
   .campo-blob-label {
     position: absolute;
-    top: -9px;
-    left: 8px;
     padding: 0 5px;
     font-family: var(--font-display);
     font-size: 0.6rem;
@@ -2065,46 +2067,173 @@
     return zona;
   }
 
-  function calcularBlobsDoContainer(containerEl) {
+  function construirUniaoRetangulos(rects) {
+    if (rects.length === 0) return [];
+    const xsSet = new Set();
+    const ysSet = new Set();
+    rects.forEach((r) => { xsSet.add(r.left); xsSet.add(r.right); ysSet.add(r.top); ysSet.add(r.bottom); });
+    const xs = Array.from(xsSet).sort((a, b) => a - b);
+    const ys = Array.from(ysSet).sort((a, b) => a - b);
+    const nx = xs.length - 1;
+    const ny = ys.length - 1;
+    if (nx <= 0 || ny <= 0) return [];
+
+    const covered = [];
+    for (let j = 0; j < ny; j++) covered.push(new Array(nx).fill(false));
+    const cx = [];
+    for (let i = 0; i < nx; i++) cx.push((xs[i] + xs[i + 1]) / 2);
+    const cy = [];
+    for (let j = 0; j < ny; j++) cy.push((ys[j] + ys[j + 1]) / 2);
+    rects.forEach((r) => {
+      for (let i = 0; i < nx; i++) {
+        if (cx[i] < r.left || cx[i] > r.right) continue;
+        for (let j = 0; j < ny; j++) {
+          if (cy[j] < r.top || cy[j] > r.bottom) continue;
+          covered[j][i] = true;
+        }
+      }
+    });
+
+    const edgeMap = new Map();
+    function toggleEdge(x1, y1, x2, y2) {
+      const rev = x2 + "," + y2 + "," + x1 + "," + y1;
+      if (edgeMap.has(rev)) { edgeMap.delete(rev); return; }
+      edgeMap.set(x1 + "," + y1 + "," + x2 + "," + y2, [x1, y1, x2, y2]);
+    }
+    for (let j = 0; j < ny; j++) {
+      for (let i = 0; i < nx; i++) {
+        if (!covered[j][i]) continue;
+        const x1 = xs[i], x2 = xs[i + 1], y1 = ys[j], y2 = ys[j + 1];
+        toggleEdge(x1, y1, x2, y1);
+        toggleEdge(x2, y1, x2, y2);
+        toggleEdge(x2, y2, x1, y2);
+        toggleEdge(x1, y2, x1, y1);
+      }
+    }
+
+    const nextFrom = new Map();
+    edgeMap.forEach((e) => { nextFrom.set(e[0] + "," + e[1], [e[2], e[3]]); });
+
+    function simplificarLoop(pts) {
+      const out = [];
+      const n = pts.length;
+      for (let i = 0; i < n; i++) {
+        const prev = pts[(i - 1 + n) % n];
+        const cur = pts[i];
+        const next = pts[(i + 1) % n];
+        const colinear = (prev[0] === cur[0] && cur[0] === next[0]) || (prev[1] === cur[1] && cur[1] === next[1]);
+        if (!colinear) out.push(cur);
+      }
+      return out.length >= 3 ? out : pts;
+    }
+
+    const loops = [];
+    const usedStarts = new Set();
+    nextFrom.forEach((v, startKey) => {
+      if (usedStarts.has(startKey)) return;
+      const loopPts = [];
+      let currentKey = startKey;
+      let guard = 0;
+      while (!usedStarts.has(currentKey) && guard < 2000) {
+        usedStarts.add(currentKey);
+        loopPts.push(currentKey.split(",").map(Number));
+        const next = nextFrom.get(currentKey);
+        if (!next) break;
+        currentKey = next[0] + "," + next[1];
+        guard++;
+      }
+      if (loopPts.length >= 3) loops.push(simplificarLoop(loopPts));
+    });
+    return loops;
+  }
+
+  const GRUPO_BLOB_PAD = 5;
+
+  function calcularFormasDoContainer(containerEl) {
     const containerRect = containerEl.getBoundingClientRect();
-    const blobs = [];
+    const maxW = containerEl.scrollWidth;
+    const maxH = containerEl.scrollHeight;
+    const formas = [];
     gruposTaticos.forEach((g) => {
       if (g.codes.length === 0) return;
       const membros = g.codes
         .map((code) => containerEl.querySelector('[data-code="' + code + '"]'))
         .filter(Boolean);
       if (membros.length === 0) return;
-      const rects = membros.map((el) => el.getBoundingClientRect());
-      const left = Math.min.apply(null, rects.map((r) => r.left)) - containerRect.left;
-      const right = Math.max.apply(null, rects.map((r) => r.right)) - containerRect.left;
-      const top = Math.min.apply(null, rects.map((r) => r.top)) - containerRect.top;
-      const bottom = Math.max.apply(null, rects.map((r) => r.bottom)) - containerRect.top;
-      blobs.push({ grupo: g, left: left, top: top, width: right - left, height: bottom - top });
+      const rects = membros.map((el) => {
+        const r = el.getBoundingClientRect();
+        return {
+          left: Math.max(0, r.left - containerRect.left - GRUPO_BLOB_PAD),
+          top: Math.max(0, r.top - containerRect.top - GRUPO_BLOB_PAD),
+          right: Math.min(maxW, r.right - containerRect.left + GRUPO_BLOB_PAD),
+          bottom: Math.min(maxH, r.bottom - containerRect.top + GRUPO_BLOB_PAD)
+        };
+      });
+      const loops = construirUniaoRetangulos(rects);
+      if (loops.length === 0) return;
+      formas.push({ grupo: g, loops: loops });
     });
-    return blobs;
+    return formas;
+  }
+
+  function construirSvgBlobs(formas, svgNs) {
+    const svg = document.createElementNS(svgNs, "svg");
+    svg.setAttribute("class", "campo-blob-layer");
+    formas.forEach((f) => {
+      const cor = corDoGrupo(f.grupo);
+      const isolado = grupoAtivoId && grupoAtivoId !== f.grupo.id;
+      f.loops.forEach((loop) => {
+        const poly = document.createElementNS(svgNs, "polygon");
+        poly.setAttribute("points", loop.map((p) => p[0] + "," + p[1]).join(" "));
+        poly.setAttribute("fill", cor.fill);
+        poly.setAttribute("stroke", cor.border);
+        poly.setAttribute("stroke-width", "1.5");
+        poly.setAttribute("stroke-linejoin", "round");
+        poly.setAttribute("opacity", isolado ? "0.18" : "1");
+        svg.appendChild(poly);
+      });
+    });
+    return svg;
+  }
+
+  function posicaoRotuloDoLoop(loop) {
+    let minX = Infinity, minY = Infinity;
+    loop.forEach((p) => {
+      if (p[1] < minY || (p[1] === minY && p[0] < minX)) { minY = p[1]; minX = p[0]; }
+    });
+    return { x: minX, y: minY };
   }
 
   function desenharBlobsTaticos() {
-    let layer = campoContainer.querySelector(":scope > .campo-blob-layer");
-    if (!layer) {
-      layer = document.createElement("div");
-      layer.className = "campo-blob-layer";
-      campoContainer.insertBefore(layer, campoContainer.firstChild);
+    const svgNs = "http://www.w3.org/2000/svg";
+    let layer = campoContainer.querySelector(":scope > svg.campo-blob-layer");
+    if (layer) layer.remove();
+    let labels = campoContainer.querySelector(":scope > .campo-blob-labels");
+    if (!labels) {
+      labels = document.createElement("div");
+      labels.className = "campo-blob-labels";
+      campoContainer.insertBefore(labels, campoContainer.firstChild);
     }
-    layer.innerHTML = "";
-    calcularBlobsDoContainer(campoContainer).forEach((b) => {
-      const cor = corDoGrupo(b.grupo);
-      const isolado = grupoAtivoId && grupoAtivoId !== b.grupo.id;
-      const blob = document.createElement("div");
-      blob.className = "campo-blob";
-      blob.style.cssText = "left:" + (b.left - 5) + "px; top:" + (b.top - 5) + "px; width:" + (b.width + 10) + "px; height:" + (b.height + 10) + "px; " +
-        "background:" + cor.fill + "; border:1.5px solid " + cor.border + "; opacity:" + (isolado ? "0.18" : "1") + ";";
+    labels.innerHTML = "";
+
+    const formas = calcularFormasDoContainer(campoContainer);
+    const svg = construirSvgBlobs(formas, svgNs);
+    svg.setAttribute("width", campoContainer.scrollWidth);
+    svg.setAttribute("height", campoContainer.scrollHeight);
+    campoContainer.insertBefore(svg, labels);
+
+    formas.forEach((f) => {
+      const cor = corDoGrupo(f.grupo);
+      const isolado = grupoAtivoId && grupoAtivoId !== f.grupo.id;
+      const pos = posicaoRotuloDoLoop(f.loops[0]);
       const lbl = document.createElement("span");
       lbl.className = "campo-blob-label";
-      lbl.textContent = b.grupo.label;
+      lbl.textContent = f.grupo.label;
       lbl.style.color = cor.text;
-      blob.appendChild(lbl);
-      layer.appendChild(blob);
+      lbl.style.left = pos.x + 3 + "px";
+      lbl.style.top = pos.y + 2 + "px";
+      lbl.style.opacity = isolado ? "0.18" : "1";
+      labels.appendChild(lbl);
     });
   }
 
@@ -2793,16 +2922,21 @@
     if (gruposTaticos.length === 0) return;
     const pitchEl = template.querySelector(".export-pitch");
     if (!pitchEl) return;
-    calcularBlobsDoContainer(pitchEl).forEach((b) => {
-      const cor = corDoGrupo(b.grupo);
-      const blob = document.createElement("div");
-      blob.style.cssText = "position:absolute; z-index:0; left:" + (b.left - 5) + "px; top:" + (b.top - 5) + "px; width:" + (b.width + 10) + "px; height:" + (b.height + 10) + "px; " +
-        "background:" + cor.fill + "; border:1.5px solid " + cor.border + "; border-radius:18px;";
+    const svgNs = "http://www.w3.org/2000/svg";
+    const formas = calcularFormasDoContainer(pitchEl);
+    const svg = construirSvgBlobs(formas, svgNs);
+    svg.style.cssText = "position:absolute; left:0; top:0; z-index:0;";
+    svg.setAttribute("width", pitchEl.scrollWidth);
+    svg.setAttribute("height", pitchEl.scrollHeight);
+    pitchEl.appendChild(svg);
+
+    formas.forEach((f) => {
+      const cor = corDoGrupo(f.grupo);
+      const pos = posicaoRotuloDoLoop(f.loops[0]);
       const lbl = document.createElement("span");
-      lbl.textContent = b.grupo.label;
-      lbl.style.cssText = "position:absolute; top:-8px; left:6px; background:#0E1A24; padding:0 4px; font-family:'Big Shoulders Display', Arial, sans-serif; font-size:8px; font-weight:700; border-radius:3px; color:" + cor.text + ";";
-      blob.appendChild(lbl);
-      pitchEl.appendChild(blob);
+      lbl.textContent = f.grupo.label;
+      lbl.style.cssText = "position:absolute; z-index:0; left:" + (pos.x + 3) + "px; top:" + (pos.y + 2) + "px; background:#0E1A24; padding:0 4px; font-family:'Big Shoulders Display', Arial, sans-serif; font-size:8px; font-weight:700; border-radius:3px; color:" + cor.text + ";";
+      pitchEl.appendChild(lbl);
     });
   }
 
