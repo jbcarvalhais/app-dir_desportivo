@@ -788,6 +788,7 @@
   .campo-subtabs {
     display: flex;
     gap: 6px;
+    flex-wrap: wrap;
     margin-bottom: 8px;
   }
   .campo-subtab {
@@ -808,6 +809,120 @@
     font-size: 0.78rem;
     color: var(--muted);
     margin: 0 0 8px;
+  }
+
+  .campo-tatico-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .campo-linha-tatica { position: relative; }
+  .campo-blob-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .campo-blob {
+    position: absolute;
+    border-radius: 22px;
+  }
+  .campo-blob-label {
+    position: absolute;
+    top: -9px;
+    left: 8px;
+    padding: 0 5px;
+    font-family: var(--font-display);
+    font-size: 0.6rem;
+    font-weight: 700;
+    border-radius: 4px;
+    background: var(--bg);
+    white-space: nowrap;
+  }
+  .campo-zona-tatica {
+    position: relative;
+    z-index: 1;
+    cursor: pointer;
+  }
+  .campo-zona-tatica .campo-chip { cursor: default; }
+  .grupo-dots {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    margin-top: 1px;
+  }
+  .grupo-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .grupos-taticos-lista {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .grupo-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+  }
+  .grupo-item.ativo { border-color: var(--brass); }
+  .grupo-item-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .grupo-cor-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .grupo-nome-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 2px 0;
+    min-width: 0;
+  }
+  .grupo-nome-input:focus { outline: none; }
+  .grupo-codigos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+  }
+  .grupo-codigo-chip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2px 4px 2px 8px;
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+  }
+  .grupo-codigo-chip button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1;
+    padding: 0 2px;
+  }
+  .grupo-vazio-aviso {
+    font-size: 0.78rem;
+    color: var(--muted);
   }
 
   @media (max-width: 480px) {
@@ -943,9 +1058,14 @@
       <div class="campo-subtabs">
         <button type="button" class="campo-subtab active" id="campoSimplesBtn">Vista simples</button>
         <button type="button" class="campo-subtab" id="campoDetalhadaBtn">Vista detalhada</button>
+        <button type="button" class="campo-subtab" id="campoTaticoBtn">Vista tática</button>
       </div>
       <p class="campo-subtab-hint" id="campoSubtabHint">Arrasta os jogadores entre posições. A posição de origem passa a secundária.</p>
+      <div class="campo-tatico-toolbar hidden" id="campoTaticoToolbar">
+        <button type="button" class="secondary" id="novoGrupoBtn">+ Novo grupo</button>
+      </div>
       <div id="campoContainer" class="campo-container"></div>
+      <div id="gruposTaticosLista" class="grupos-taticos-lista hidden"></div>
     </div>
   </section>
 
@@ -1027,10 +1147,28 @@
   const campoContainer = document.getElementById("campoContainer");
   const campoSimplesBtn = document.getElementById("campoSimplesBtn");
   const campoDetalhadaBtn = document.getElementById("campoDetalhadaBtn");
+  const campoTaticoBtn = document.getElementById("campoTaticoBtn");
+  const campoTaticoToolbar = document.getElementById("campoTaticoToolbar");
+  const novoGrupoBtn = document.getElementById("novoGrupoBtn");
+  const gruposTaticosLista = document.getElementById("gruposTaticosLista");
   const campoSubtabHint = document.getElementById("campoSubtabHint");
   const tabListaBtn = document.getElementById("tabListaBtn");
   const tabCampoBtn = document.getElementById("tabCampoBtn");
-  let campoDetalhada = false;
+  let campoModo = "simples";
+  const GRUPO_PALETTE = [
+    { fill: "rgba(184,149,90,0.30)", border: "#D4B67E", text: "#F3E4CB" },
+    { fill: "rgba(93,161,225,0.30)", border: "#8FC1F2", text: "#DCEEFF" },
+    { fill: "rgba(224,122,109,0.30)", border: "#F0A99C", text: "#FBE2DD" },
+    { fill: "rgba(140,196,132,0.30)", border: "#A9DBA0", text: "#E4F3E1" },
+    { fill: "rgba(196,150,214,0.30)", border: "#D9B8E8", text: "#F1E2F7" },
+    { fill: "rgba(214,196,120,0.30)", border: "#E8D98F", text: "#F7F0D8" }
+  ];
+  let gruposTaticos = [];
+  let grupoAtivoId = null;
+  let nextGrupoId = 1;
+  function corDoGrupo(g) {
+    return GRUPO_PALETTE[g.colorIndex % GRUPO_PALETTE.length];
+  }
   const saldoValue = document.getElementById("saldoValue");
   const toggleReforcoBtn = document.getElementById("toggleReforcoBtn");
   const reforcoForm = document.getElementById("reforcoForm");
@@ -1130,7 +1268,8 @@
       orcamentoInicial: orcamentoInicial,
       jogadores: players,
       ganhosExtra: extraGanhos,
-      custosExtra: extraCustos
+      custosExtra: extraCustos,
+      gruposTaticos: gruposTaticos
     };
   }
 
@@ -1143,6 +1282,9 @@
     players = dados.jogadores;
     extraGanhos = Array.isArray(dados.ganhosExtra) ? dados.ganhosExtra : [];
     extraCustos = Array.isArray(dados.custosExtra) ? dados.custosExtra : [];
+    gruposTaticos = Array.isArray(dados.gruposTaticos) ? dados.gruposTaticos : [];
+    grupoAtivoId = null;
+    nextGrupoId = gruposTaticos.reduce((max, g) => Math.max(max, g.id), 0) + 1;
     orcamentoInicial = parseFloat(dados.orcamentoInicial) || 0;
     orcamentoInicialInput.value = orcamentoInicial || "";
     squadClubName.textContent = (dados.clube && dados.clube.nome) || "";
@@ -1241,6 +1383,9 @@
     players = [];
     extraGanhos = [];
     extraCustos = [];
+    gruposTaticos = [];
+    grupoAtivoId = null;
+    nextGrupoId = 1;
     orcamentoInicial = 0;
     orcamentoInicialInput.value = "";
     filtroNome = "";
@@ -1347,18 +1492,135 @@
     squadList.classList.add("hidden");
   });
 
-  function setCampoDetalhada(valor) {
-    campoDetalhada = valor;
-    campoSimplesBtn.classList.toggle("active", !valor);
-    campoDetalhadaBtn.classList.toggle("active", valor);
-    campoSubtabHint.textContent = valor
-      ? "Mostra também as posições secundárias de cada jogador. Não é possível arrastar nesta vista."
-      : "Arrasta os jogadores entre posições. A posição de origem passa a secundária.";
+  function setCampoModo(modo) {
+    campoModo = modo;
+    campoSimplesBtn.classList.toggle("active", modo === "simples");
+    campoDetalhadaBtn.classList.toggle("active", modo === "detalhada");
+    campoTaticoBtn.classList.toggle("active", modo === "tatico");
+    campoTaticoToolbar.classList.toggle("hidden", modo !== "tatico");
+    gruposTaticosLista.classList.toggle("hidden", modo !== "tatico");
+    if (modo === "detalhada") {
+      campoSubtabHint.textContent = "Mostra também as posições secundárias de cada jogador. Não é possível arrastar nesta vista.";
+    } else if (modo === "tatico") {
+      campoSubtabHint.textContent = "Cria grupos e clica nas posições do campo para as juntar (ex.: RB + RWB). É só visual — não muda as posições de ninguém.";
+    } else {
+      campoSubtabHint.textContent = "Arrasta os jogadores entre posições. A posição de origem passa a secundária.";
+    }
     renderCampo();
   }
 
-  campoSimplesBtn.addEventListener("click", () => setCampoDetalhada(false));
-  campoDetalhadaBtn.addEventListener("click", () => setCampoDetalhada(true));
+  campoSimplesBtn.addEventListener("click", () => setCampoModo("simples"));
+  campoDetalhadaBtn.addEventListener("click", () => setCampoModo("detalhada"));
+  campoTaticoBtn.addEventListener("click", () => setCampoModo("tatico"));
+
+  novoGrupoBtn.addEventListener("click", () => {
+    const g = { id: nextGrupoId++, label: "Grupo " + (gruposTaticos.length + 1), codes: [], colorIndex: gruposTaticos.length % GRUPO_PALETTE.length };
+    gruposTaticos.push(g);
+    grupoAtivoId = g.id;
+    renderCampoTatico();
+    renderGruposTaticosLista();
+    autoSave();
+  });
+
+  function onZonaTaticaClick(code) {
+    if (!grupoAtivoId) return;
+    const g = gruposTaticos.find((x) => x.id === grupoAtivoId);
+    if (!g) return;
+    const i = g.codes.indexOf(code);
+    if (i === -1) g.codes.push(code); else g.codes.splice(i, 1);
+    renderCampoTatico();
+    renderGruposTaticosLista();
+    autoSave();
+  }
+
+  function renderGruposTaticosLista() {
+    gruposTaticosLista.innerHTML = "";
+    if (gruposTaticos.length === 0) {
+      const vazio = document.createElement("p");
+      vazio.className = "grupo-vazio-aviso";
+      vazio.textContent = "Ainda não criaste nenhum grupo. Usa \"+ Novo grupo\" e depois clica nas posições do campo para as juntar.";
+      gruposTaticosLista.appendChild(vazio);
+      return;
+    }
+    gruposTaticos.forEach((g) => {
+      const cor = corDoGrupo(g);
+      const item = document.createElement("div");
+      item.className = "grupo-item" + (g.id === grupoAtivoId ? " ativo" : "");
+
+      const header = document.createElement("div");
+      header.className = "grupo-item-header";
+
+      const dot = document.createElement("span");
+      dot.className = "grupo-cor-dot";
+      dot.style.background = cor.border;
+      header.appendChild(dot);
+
+      const nomeInput = document.createElement("input");
+      nomeInput.type = "text";
+      nomeInput.className = "grupo-nome-input";
+      nomeInput.value = g.label;
+      nomeInput.addEventListener("click", (e) => e.stopPropagation());
+      nomeInput.addEventListener("input", () => {
+        g.label = nomeInput.value;
+        desenharBlobsTaticos();
+        autoSave();
+      });
+      header.appendChild(nomeInput);
+
+      const removerBtn = document.createElement("button");
+      removerBtn.type = "button";
+      removerBtn.className = "remove-link";
+      removerBtn.textContent = "Remover grupo";
+      removerBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        gruposTaticos = gruposTaticos.filter((x) => x !== g);
+        if (grupoAtivoId === g.id) grupoAtivoId = null;
+        renderCampoTatico();
+        renderGruposTaticosLista();
+        autoSave();
+      });
+      header.appendChild(removerBtn);
+
+      item.appendChild(header);
+
+      const codigos = document.createElement("div");
+      codigos.className = "grupo-codigos";
+      if (g.codes.length === 0) {
+        const aviso = document.createElement("span");
+        aviso.className = "grupo-vazio-aviso";
+        aviso.textContent = "Sem posições — clica no campo para adicionar.";
+        codigos.appendChild(aviso);
+      }
+      g.codes.forEach((code) => {
+        const chip = document.createElement("span");
+        chip.className = "grupo-codigo-chip";
+        const txt = document.createElement("span");
+        txt.textContent = code;
+        chip.appendChild(txt);
+        const remBtn = document.createElement("button");
+        remBtn.type = "button";
+        remBtn.textContent = "×";
+        remBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          g.codes = g.codes.filter((c) => c !== code);
+          renderCampoTatico();
+          renderGruposTaticosLista();
+          autoSave();
+        });
+        chip.appendChild(remBtn);
+        codigos.appendChild(chip);
+      });
+      item.appendChild(codigos);
+
+      item.addEventListener("click", () => {
+        grupoAtivoId = (grupoAtivoId === g.id) ? null : g.id;
+        renderCampoTatico();
+        renderGruposTaticosLista();
+      });
+
+      gruposTaticosLista.appendChild(item);
+    });
+  }
 
   toggleReforcoBtn.addEventListener("click", () => {
     reforcoForm.classList.toggle("hidden");
@@ -1744,10 +2006,10 @@
         renderSquad();
       }
     };
-    if (!campoDetalhada) sortableOptions.group = "campoGroup";
+    if (campoModo !== "detalhada") sortableOptions.group = "campoGroup";
     Sortable.create(principaisWrap, sortableOptions);
 
-    if (campoDetalhada) {
+    if (campoModo === "detalhada") {
       const secundarios = emAnalise.filter((p) => p.posPrincipal !== code && p.posSecundarias.includes(code));
       if (secundarios.length > 0) {
         const secundariasWrap = document.createElement("div");
@@ -1760,9 +2022,120 @@
     return zona;
   }
 
-  function renderCampo() {
+  function buildCampoZonaTatica(code, sub) {
+    const emAnalise = visiveis();
+    const zona = document.createElement("div");
+    zona.className = "campo-zona campo-zona-tatica" + (sub ? " campo-zona-sub" : "");
+    zona.dataset.code = code;
+
+    const label = document.createElement("div");
+    label.className = "campo-zona-label";
+    label.textContent = code;
+    zona.appendChild(label);
+
+    const principaisWrap = document.createElement("div");
+    principaisWrap.className = "campo-zona-principais";
+    emAnalise
+      .filter((p) => p.posPrincipal === code)
+      .forEach((player) => principaisWrap.appendChild(renderCampoChip(player, false)));
+    zona.appendChild(principaisWrap);
+
+    const membros = gruposTaticos.filter((g) => g.codes.includes(code));
+    if (membros.length > 0) {
+      const dots = document.createElement("div");
+      dots.className = "grupo-dots";
+      membros.forEach((g) => {
+        const dot = document.createElement("span");
+        dot.className = "grupo-dot";
+        dot.style.background = corDoGrupo(g).border;
+        dots.appendChild(dot);
+      });
+      zona.appendChild(dots);
+    }
+
+    zona.addEventListener("click", () => onZonaTaticaClick(code));
+    return zona;
+  }
+
+  function calcularBlobsDaLinha(linhaEl) {
+    const rowRect = linhaEl.getBoundingClientRect();
+    const blobs = [];
+    gruposTaticos.forEach((g) => {
+      if (g.codes.length === 0) return;
+      const membros = g.codes
+        .map((code) => linhaEl.querySelector('[data-code="' + code + '"]'))
+        .filter(Boolean);
+      if (membros.length === 0) return;
+      const rects = membros.map((el) => el.getBoundingClientRect());
+      const left = Math.min.apply(null, rects.map((r) => r.left)) - rowRect.left;
+      const right = Math.max.apply(null, rects.map((r) => r.right)) - rowRect.left;
+      const top = Math.min.apply(null, rects.map((r) => r.top)) - rowRect.top;
+      const bottom = Math.max.apply(null, rects.map((r) => r.bottom)) - rowRect.top;
+      blobs.push({ grupo: g, left: left, top: top, width: right - left, height: bottom - top });
+    });
+    return blobs;
+  }
+
+  function desenharBlobsTaticos() {
+    campoContainer.querySelectorAll(".campo-linha-tatica").forEach((linhaEl) => {
+      const layer = linhaEl.querySelector(".campo-blob-layer");
+      if (!layer) return;
+      layer.innerHTML = "";
+      calcularBlobsDaLinha(linhaEl).forEach((b) => {
+        const cor = corDoGrupo(b.grupo);
+        const isolado = grupoAtivoId && grupoAtivoId !== b.grupo.id;
+        const blob = document.createElement("div");
+        blob.className = "campo-blob";
+        blob.style.cssText = "left:" + (b.left - 5) + "px; top:" + (b.top - 5) + "px; width:" + (b.width + 10) + "px; height:" + (b.height + 10) + "px; " +
+          "background:" + cor.fill + "; border:1.5px solid " + cor.border + "; opacity:" + (isolado ? "0.18" : "1") + ";";
+        const lbl = document.createElement("span");
+        lbl.className = "campo-blob-label";
+        lbl.textContent = b.grupo.label;
+        lbl.style.color = cor.text;
+        blob.appendChild(lbl);
+        layer.appendChild(blob);
+      });
+    });
+  }
+
+  function renderCampoTatico() {
     campoContainer.innerHTML = "";
-    campoContainer.classList.toggle("campo-detalhada", campoDetalhada);
+    campoContainer.classList.remove("campo-detalhada");
+
+    FIELD_ROWS.forEach((row) => {
+      const linhaDiv = document.createElement("div");
+      linhaDiv.className = "campo-linha campo-linha-tatica" + (row.compact ? " compact" : "");
+
+      const blobLayer = document.createElement("div");
+      blobLayer.className = "campo-blob-layer";
+      linhaDiv.appendChild(blobLayer);
+
+      row.codes.forEach((entry) => {
+        if (entry === null) {
+          linhaDiv.appendChild(buildCampoZonaSpacer());
+        } else if (Array.isArray(entry)) {
+          const stack = document.createElement("div");
+          stack.className = "campo-zona-stack";
+          entry.forEach((code) => stack.appendChild(buildCampoZonaTatica(code, true)));
+          linhaDiv.appendChild(stack);
+        } else {
+          linhaDiv.appendChild(buildCampoZonaTatica(entry, false));
+        }
+      });
+
+      campoContainer.appendChild(linhaDiv);
+    });
+
+    desenharBlobsTaticos();
+  }
+
+  function renderCampo() {
+    if (campoModo === "tatico") {
+      renderCampoTatico();
+      return;
+    }
+    campoContainer.innerHTML = "";
+    campoContainer.classList.toggle("campo-detalhada", campoModo === "detalhada");
 
     FIELD_ROWS.forEach((row) => {
       const linhaDiv = document.createElement("div");
@@ -2341,7 +2714,8 @@
 
     function buildExportZona(code, sub) {
       const zona = document.createElement("div");
-      zona.style.cssText = "flex:1; min-height:" + (sub ? "27px" : "56px") + "; border:1px dashed rgba(255,255,255,0.35); border-radius:6px; padding:3px; display:flex; flex-direction:column; gap:3px;";
+      zona.dataset.code = code;
+      zona.style.cssText = "position:relative; z-index:1; flex:1; min-height:" + (sub ? "27px" : "56px") + "; border:1px dashed rgba(255,255,255,0.35); border-radius:6px; padding:3px; display:flex; flex-direction:column; gap:3px;";
 
       const label = document.createElement("div");
       label.style.cssText = "font-family:'Big Shoulders Display', Arial, sans-serif; font-size:" + (sub ? "7px" : "9px") + "; color:rgba(255,255,255,0.85); text-align:center; font-weight:700;";
@@ -2352,7 +2726,7 @@
         zona.appendChild(buildExportChip(player, false));
       });
 
-      if (campoDetalhada) {
+      if (campoModo === "detalhada") {
         emVista.filter((p) => p.posPrincipal !== code && p.posSecundarias.includes(code)).forEach((player) => {
           zona.appendChild(buildExportChip(player, true));
         });
@@ -2369,7 +2743,8 @@
 
     FIELD_ROWS.forEach((row) => {
       const linhaDiv = document.createElement("div");
-      linhaDiv.style.cssText = "display:flex; gap:4px;" + (row.compact ? " justify-content:center;" : "");
+      linhaDiv.className = "export-pitch-linha";
+      linhaDiv.style.cssText = "position:relative; display:flex; gap:4px;" + (row.compact ? " justify-content:center;" : "");
 
       row.codes.forEach((entry) => {
         if (entry === null) {
@@ -2406,6 +2781,23 @@
     return container;
   }
 
+  function desenharBlobsExport(template) {
+    if (gruposTaticos.length === 0) return;
+    template.querySelectorAll(".export-pitch-linha").forEach((linhaEl) => {
+      calcularBlobsDaLinha(linhaEl).forEach((b) => {
+        const cor = corDoGrupo(b.grupo);
+        const blob = document.createElement("div");
+        blob.style.cssText = "position:absolute; z-index:0; left:" + (b.left - 5) + "px; top:" + (b.top - 5) + "px; width:" + (b.width + 10) + "px; height:" + (b.height + 10) + "px; " +
+          "background:" + cor.fill + "; border:1.5px solid " + cor.border + "; border-radius:18px;";
+        const lbl = document.createElement("span");
+        lbl.textContent = b.grupo.label;
+        lbl.style.cssText = "position:absolute; top:-8px; left:6px; background:#0E1A24; padding:0 4px; font-family:'Big Shoulders Display', Arial, sans-serif; font-size:8px; font-weight:700; border-radius:3px; color:" + cor.text + ";";
+        blob.appendChild(lbl);
+        linhaEl.appendChild(blob);
+      });
+    });
+  }
+
   async function exportarImagem(exportBtn, formatoVertical, sufixoFicheiro) {
     const textoOriginal = exportBtn.textContent;
     exportBtn.disabled = true;
@@ -2414,6 +2806,7 @@
     try {
       template = await construirTemplateExportacao(formatoVertical);
       document.body.appendChild(template);
+      desenharBlobsExport(template);
       const larguraCaptura = template.scrollWidth;
       const alturaCaptura = template.scrollHeight;
       const canvas = await html2canvas(template, {
