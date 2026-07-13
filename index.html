@@ -658,6 +658,7 @@
     display: flex;
     flex-direction: column-reverse;
     gap: 4px;
+    position: relative;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -817,7 +818,6 @@
     gap: 8px;
     margin-bottom: 8px;
   }
-  .campo-linha-tatica { position: relative; }
   .campo-blob-layer {
     position: absolute;
     inset: 0;
@@ -936,6 +936,14 @@
     .campo-zona { flex: 0 0 58px; min-width: 58px; }
     .campo-zona-stack { flex: 0 0 58px; min-width: 58px; }
     .campo-linha.compact .campo-zona { flex: 0 0 100px; }
+
+    .campo-container.campo-tatico { overflow-x: visible; }
+    .campo-container.campo-tatico .campo-linha { min-width: 0; }
+    .campo-container.campo-tatico .campo-zona,
+    .campo-container.campo-tatico .campo-zona-stack { flex: 1; min-width: 0; }
+    .campo-container.campo-tatico .campo-linha.compact .campo-zona { flex: 0 1 70px; }
+    .campo-container.campo-tatico .campo-zona-label { font-size: 0.5rem; }
+    .campo-container.campo-tatico .campo-chip .campo-nome { font-size: 0.6rem; }
 
     button { padding: 7px 12px; font-size: 0.85rem; }
     .actions-bar, .row { gap: 6px; }
@@ -2057,58 +2065,57 @@
     return zona;
   }
 
-  function calcularBlobsDaLinha(linhaEl) {
-    const rowRect = linhaEl.getBoundingClientRect();
+  function calcularBlobsDoContainer(containerEl) {
+    const containerRect = containerEl.getBoundingClientRect();
     const blobs = [];
     gruposTaticos.forEach((g) => {
       if (g.codes.length === 0) return;
       const membros = g.codes
-        .map((code) => linhaEl.querySelector('[data-code="' + code + '"]'))
+        .map((code) => containerEl.querySelector('[data-code="' + code + '"]'))
         .filter(Boolean);
       if (membros.length === 0) return;
       const rects = membros.map((el) => el.getBoundingClientRect());
-      const left = Math.min.apply(null, rects.map((r) => r.left)) - rowRect.left;
-      const right = Math.max.apply(null, rects.map((r) => r.right)) - rowRect.left;
-      const top = Math.min.apply(null, rects.map((r) => r.top)) - rowRect.top;
-      const bottom = Math.max.apply(null, rects.map((r) => r.bottom)) - rowRect.top;
+      const left = Math.min.apply(null, rects.map((r) => r.left)) - containerRect.left;
+      const right = Math.max.apply(null, rects.map((r) => r.right)) - containerRect.left;
+      const top = Math.min.apply(null, rects.map((r) => r.top)) - containerRect.top;
+      const bottom = Math.max.apply(null, rects.map((r) => r.bottom)) - containerRect.top;
       blobs.push({ grupo: g, left: left, top: top, width: right - left, height: bottom - top });
     });
     return blobs;
   }
 
   function desenharBlobsTaticos() {
-    campoContainer.querySelectorAll(".campo-linha-tatica").forEach((linhaEl) => {
-      const layer = linhaEl.querySelector(".campo-blob-layer");
-      if (!layer) return;
-      layer.innerHTML = "";
-      calcularBlobsDaLinha(linhaEl).forEach((b) => {
-        const cor = corDoGrupo(b.grupo);
-        const isolado = grupoAtivoId && grupoAtivoId !== b.grupo.id;
-        const blob = document.createElement("div");
-        blob.className = "campo-blob";
-        blob.style.cssText = "left:" + (b.left - 5) + "px; top:" + (b.top - 5) + "px; width:" + (b.width + 10) + "px; height:" + (b.height + 10) + "px; " +
-          "background:" + cor.fill + "; border:1.5px solid " + cor.border + "; opacity:" + (isolado ? "0.18" : "1") + ";";
-        const lbl = document.createElement("span");
-        lbl.className = "campo-blob-label";
-        lbl.textContent = b.grupo.label;
-        lbl.style.color = cor.text;
-        blob.appendChild(lbl);
-        layer.appendChild(blob);
-      });
+    let layer = campoContainer.querySelector(":scope > .campo-blob-layer");
+    if (!layer) {
+      layer = document.createElement("div");
+      layer.className = "campo-blob-layer";
+      campoContainer.insertBefore(layer, campoContainer.firstChild);
+    }
+    layer.innerHTML = "";
+    calcularBlobsDoContainer(campoContainer).forEach((b) => {
+      const cor = corDoGrupo(b.grupo);
+      const isolado = grupoAtivoId && grupoAtivoId !== b.grupo.id;
+      const blob = document.createElement("div");
+      blob.className = "campo-blob";
+      blob.style.cssText = "left:" + (b.left - 5) + "px; top:" + (b.top - 5) + "px; width:" + (b.width + 10) + "px; height:" + (b.height + 10) + "px; " +
+        "background:" + cor.fill + "; border:1.5px solid " + cor.border + "; opacity:" + (isolado ? "0.18" : "1") + ";";
+      const lbl = document.createElement("span");
+      lbl.className = "campo-blob-label";
+      lbl.textContent = b.grupo.label;
+      lbl.style.color = cor.text;
+      blob.appendChild(lbl);
+      layer.appendChild(blob);
     });
   }
 
   function renderCampoTatico() {
     campoContainer.innerHTML = "";
     campoContainer.classList.remove("campo-detalhada");
+    campoContainer.classList.add("campo-tatico");
 
     FIELD_ROWS.forEach((row) => {
       const linhaDiv = document.createElement("div");
-      linhaDiv.className = "campo-linha campo-linha-tatica" + (row.compact ? " compact" : "");
-
-      const blobLayer = document.createElement("div");
-      blobLayer.className = "campo-blob-layer";
-      linhaDiv.appendChild(blobLayer);
+      linhaDiv.className = "campo-linha" + (row.compact ? " compact" : "");
 
       row.codes.forEach((entry) => {
         if (entry === null) {
@@ -2135,6 +2142,7 @@
       return;
     }
     campoContainer.innerHTML = "";
+    campoContainer.classList.remove("campo-tatico");
     campoContainer.classList.toggle("campo-detalhada", campoModo === "detalhada");
 
     FIELD_ROWS.forEach((row) => {
@@ -2674,7 +2682,8 @@
     container.appendChild(header);
 
     const pitch = document.createElement("div");
-    pitch.style.cssText = "background:linear-gradient(180deg, #1F6F45, #123B26); border-radius:10px; padding:10px; display:flex; flex-direction:column-reverse; gap:4px;";
+    pitch.className = "export-pitch";
+    pitch.style.cssText = "position:relative; background:linear-gradient(180deg, #1F6F45, #123B26); border-radius:10px; padding:10px; display:flex; flex-direction:column-reverse; gap:4px;";
 
     function buildExportChip(player, isSecundaria) {
       const nomeIndefinido = player.isReforco && !player.name.trim();
@@ -2715,7 +2724,7 @@
     function buildExportZona(code, sub) {
       const zona = document.createElement("div");
       zona.dataset.code = code;
-      zona.style.cssText = "position:relative; z-index:1; flex:1; min-height:" + (sub ? "27px" : "56px") + "; border:1px dashed rgba(255,255,255,0.35); border-radius:6px; padding:3px; display:flex; flex-direction:column; gap:3px;";
+      zona.style.cssText = "position:relative; z-index:1; flex:" + (sub ? "1 0 auto" : "1") + "; min-height:" + (sub ? "27px" : "56px") + "; border:1px dashed rgba(255,255,255,0.35); border-radius:6px; padding:3px; display:flex; flex-direction:column; gap:3px;";
 
       const label = document.createElement("div");
       label.style.cssText = "font-family:'Big Shoulders Display', Arial, sans-serif; font-size:" + (sub ? "7px" : "9px") + "; color:rgba(255,255,255,0.85); text-align:center; font-weight:700;";
@@ -2743,8 +2752,7 @@
 
     FIELD_ROWS.forEach((row) => {
       const linhaDiv = document.createElement("div");
-      linhaDiv.className = "export-pitch-linha";
-      linhaDiv.style.cssText = "position:relative; display:flex; gap:4px;" + (row.compact ? " justify-content:center;" : "");
+      linhaDiv.style.cssText = "display:flex; gap:4px;" + (row.compact ? " justify-content:center;" : "");
 
       row.codes.forEach((entry) => {
         if (entry === null) {
@@ -2783,18 +2791,18 @@
 
   function desenharBlobsExport(template) {
     if (gruposTaticos.length === 0) return;
-    template.querySelectorAll(".export-pitch-linha").forEach((linhaEl) => {
-      calcularBlobsDaLinha(linhaEl).forEach((b) => {
-        const cor = corDoGrupo(b.grupo);
-        const blob = document.createElement("div");
-        blob.style.cssText = "position:absolute; z-index:0; left:" + (b.left - 5) + "px; top:" + (b.top - 5) + "px; width:" + (b.width + 10) + "px; height:" + (b.height + 10) + "px; " +
-          "background:" + cor.fill + "; border:1.5px solid " + cor.border + "; border-radius:18px;";
-        const lbl = document.createElement("span");
-        lbl.textContent = b.grupo.label;
-        lbl.style.cssText = "position:absolute; top:-8px; left:6px; background:#0E1A24; padding:0 4px; font-family:'Big Shoulders Display', Arial, sans-serif; font-size:8px; font-weight:700; border-radius:3px; color:" + cor.text + ";";
-        blob.appendChild(lbl);
-        linhaEl.appendChild(blob);
-      });
+    const pitchEl = template.querySelector(".export-pitch");
+    if (!pitchEl) return;
+    calcularBlobsDoContainer(pitchEl).forEach((b) => {
+      const cor = corDoGrupo(b.grupo);
+      const blob = document.createElement("div");
+      blob.style.cssText = "position:absolute; z-index:0; left:" + (b.left - 5) + "px; top:" + (b.top - 5) + "px; width:" + (b.width + 10) + "px; height:" + (b.height + 10) + "px; " +
+        "background:" + cor.fill + "; border:1.5px solid " + cor.border + "; border-radius:18px;";
+      const lbl = document.createElement("span");
+      lbl.textContent = b.grupo.label;
+      lbl.style.cssText = "position:absolute; top:-8px; left:6px; background:#0E1A24; padding:0 4px; font-family:'Big Shoulders Display', Arial, sans-serif; font-size:8px; font-weight:700; border-radius:3px; color:" + cor.text + ";";
+      blob.appendChild(lbl);
+      pitchEl.appendChild(blob);
     });
   }
 
