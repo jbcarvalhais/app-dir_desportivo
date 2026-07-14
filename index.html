@@ -1169,7 +1169,7 @@
     { line: "GK", codes: ["GK"] },
     { line: "DF", codes: ["LB", "LWB", "LCB", "CCB", "RCB", "RB", "RWB"] },
     { line: "MF", codes: ["LCDM", "CCDM", "RCDM", "LM", "LCM", "CCM", "RCM", "RM", "LCAM", "CCAM", "RCAM"] },
-    { line: "AT", codes: ["LW", "LST", "CST", "RST", "RW"] }
+    { line: "AT", codes: ["LW", "LST", "CST", "RST", "RW", "SS"] }
   ];
   const DEFAULT_POS_BY_CATEGORY = { GK: "GK", DF: "CCB", MF: "CCM", AT: "CST" };
   const POSITION_TO_LINE = {};
@@ -1185,6 +1185,7 @@
     { label: "Médios defensivos", codes: [null, "LCDM", "CCDM", "RCDM", null] },
     { label: "Médios", codes: ["LM", "LCM", "CCM", "RCM", "RM"] },
     { label: "Médios ofensivos", codes: ["LW", "LCAM", "CCAM", "RCAM", "RW"] },
+    { label: "2º avançado", codes: ["SS"], compact: true },
     { label: "Avançados", codes: [null, "LST", "CST", "RST", null] }
   ];
 
