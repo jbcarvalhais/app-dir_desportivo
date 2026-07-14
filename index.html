@@ -1059,6 +1059,9 @@
         Cor do clube
         <input type="color" id="corClubeInput" value="#B8955A">
       </label>
+      <label style="display:flex; align-items:center; gap:6px; margin-bottom:0;">
+        <input type="checkbox" id="modoSelecaoInput"> É uma seleção
+      </label>
       <button class="secondary" id="backToSearchBtn">Procurar outro clube</button>
     </div>
     <div class="masthead">
@@ -1066,12 +1069,12 @@
         <img id="squadClubLogo" class="club-crest" src="" alt="" onerror="this.style.visibility='hidden'">
         <span class="club-name" id="squadClubName"></span>
       </div>
-      <div class="masthead-saldo">
+      <div class="masthead-saldo" id="mastheadSaldo">
         <span class="saldo-label">Saldo de mercado</span>
         <span class="saldo-value" id="saldoValue">0,0 M€</span>
       </div>
     </div>
-    <div class="orcamento-row">
+    <div class="orcamento-row" id="orcamentoRow">
       <label for="orcamentoInicialInput">Orçamento inicial (M€)</label>
       <input type="number" id="orcamentoInicialInput" step="0.1" placeholder="0">
     </div>
@@ -1082,7 +1085,7 @@
       <button class="secondary" id="copiarLinkBtn">Copiar link</button>
     </div>
     <p class="status" id="squadStatus"></p>
-    <div class="row">
+    <div class="row" id="transferActionsRow">
       <button class="secondary" id="toggleReforcoBtn">+ Adicionar reforço</button>
       <button class="secondary" id="toggleGanhoBtn">+ Adicionar ganho extra</button>
       <button class="secondary" id="toggleCustoBtn">+ Adicionar outro custo</button>
@@ -1266,6 +1269,11 @@
   const exportarStoryBtn = document.getElementById("exportarStoryBtn");
   const copiarLinkBtn = document.getElementById("copiarLinkBtn");
   const corClubeInput = document.getElementById("corClubeInput");
+  const modoSelecaoInput = document.getElementById("modoSelecaoInput");
+  const mastheadSaldo = document.getElementById("mastheadSaldo");
+  const orcamentoRow = document.getElementById("orcamentoRow");
+  const transferActionsRow = document.getElementById("transferActionsRow");
+  let modoSelecao = false;
   const guardarAnaliseBtn = document.getElementById("guardarAnaliseBtn");
   const carregarAnaliseBtn = document.getElementById("carregarAnaliseBtn");
   const carregarAnaliseInput = document.getElementById("carregarAnaliseInput");
@@ -1321,6 +1329,26 @@
     autoSave();
   });
 
+  function aplicarModoSelecao() {
+    mastheadSaldo.classList.toggle("hidden", modoSelecao);
+    orcamentoRow.classList.toggle("hidden", modoSelecao);
+    transferActionsRow.classList.toggle("hidden", modoSelecao);
+    tabResumoBtn.classList.toggle("hidden", modoSelecao);
+    reforcoForm.classList.add("hidden");
+    ganhoForm.classList.add("hidden");
+    custoForm.classList.add("hidden");
+    modoSelecaoInput.checked = modoSelecao;
+    if (modoSelecao && tabResumoBtn.classList.contains("active")) {
+      ativarTab("lista");
+    }
+  }
+
+  modoSelecaoInput.addEventListener("input", () => {
+    modoSelecao = modoSelecaoInput.checked;
+    aplicarModoSelecao();
+    autoSave();
+  });
+
   const ANALISE_VERSAO_ATUAL = 1;
 
   function showToast(mensagem) {
@@ -1339,6 +1367,7 @@
         logo: squadClubLogo.src || ""
       },
       corDestaque: corClubeInput.value,
+      modoSelecao: modoSelecao,
       orcamentoInicial: orcamentoInicial,
       jogadores: players,
       ganhosExtra: extraGanhos,
@@ -1365,6 +1394,8 @@
     squadClubLogo.src = (dados.clube && dados.clube.logo) || "";
     squadClubLogo.style.visibility = squadClubLogo.src ? "visible" : "hidden";
     aplicarCorClube(dados.corDestaque || CLUBE_COR_DEFEITO);
+    modoSelecao = !!dados.modoSelecao;
+    aplicarModoSelecao();
     filtroNome = "";
     filtroNomeInput.value = "";
     renderSquad();
@@ -1465,6 +1496,8 @@
     filtroNome = "";
     filtroNomeInput.value = "";
     aplicarCorClube(CLUBE_COR_DEFEITO);
+    modoSelecao = false;
+    aplicarModoSelecao();
     carregarAnaliseError.textContent = "";
     showSearchScreen();
   });
@@ -3039,19 +3072,21 @@
     clubeWrap.appendChild(nomeClube);
     header.appendChild(clubeWrap);
 
-    const saldoWrap = document.createElement("div");
-    saldoWrap.style.cssText = "text-align:right;";
-    const saldoLabel = document.createElement("div");
-    saldoLabel.style.cssText = "font-size:9px; text-transform:uppercase; letter-spacing:0.09em; color:#8A9BA8;";
-    saldoLabel.textContent = "Saldo de mercado";
-    const saldoEl = document.createElement("div");
-    const saldo = computeSaldo();
-    saldoEl.style.cssText = "font-family:'IBM Plex Mono', monospace; font-size:20px; font-weight:600; color:" +
-      (saldo > 0 ? "#4CAF7D" : saldo < 0 ? "#E07A6D" : "#EAEDEF") + ";";
-    saldoEl.textContent = saldo.toLocaleString("pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " M€";
-    saldoWrap.appendChild(saldoLabel);
-    saldoWrap.appendChild(saldoEl);
-    header.appendChild(saldoWrap);
+    if (!modoSelecao) {
+      const saldoWrap = document.createElement("div");
+      saldoWrap.style.cssText = "text-align:right;";
+      const saldoLabel = document.createElement("div");
+      saldoLabel.style.cssText = "font-size:9px; text-transform:uppercase; letter-spacing:0.09em; color:#8A9BA8;";
+      saldoLabel.textContent = "Saldo de mercado";
+      const saldoEl = document.createElement("div");
+      const saldo = computeSaldo();
+      saldoEl.style.cssText = "font-family:'IBM Plex Mono', monospace; font-size:20px; font-weight:600; color:" +
+        (saldo > 0 ? "#4CAF7D" : saldo < 0 ? "#E07A6D" : "#EAEDEF") + ";";
+      saldoEl.textContent = saldo.toLocaleString("pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " M€";
+      saldoWrap.appendChild(saldoLabel);
+      saldoWrap.appendChild(saldoEl);
+      header.appendChild(saldoWrap);
+    }
     container.appendChild(header);
 
     const pitch = document.createElement("div");
@@ -3146,13 +3181,15 @@
     });
     container.appendChild(pitch);
 
-    const listas = document.createElement("div");
-    listas.style.cssText = "display:flex; gap:16px; margin-top:14px;" + (formatoVertical ? " flex-direction:column;" : "");
-    listas.appendChild(construirListaTransferencias("Saem", saem, "sai", corDestaque));
-    listas.appendChild(construirListaTransferencias("Entram", entram, "entra", corDestaque));
-    listas.appendChild(construirListaValores("Outros ganhos", extraGanhos, corDestaque, "+"));
-    listas.appendChild(construirListaValores("Outros custos", extraCustos, corDestaque, "-"));
-    container.appendChild(listas);
+    if (!modoSelecao) {
+      const listas = document.createElement("div");
+      listas.style.cssText = "display:flex; gap:16px; margin-top:14px;" + (formatoVertical ? " flex-direction:column;" : "");
+      listas.appendChild(construirListaTransferencias("Saem", saem, "sai", corDestaque));
+      listas.appendChild(construirListaTransferencias("Entram", entram, "entra", corDestaque));
+      listas.appendChild(construirListaValores("Outros ganhos", extraGanhos, corDestaque, "+"));
+      listas.appendChild(construirListaValores("Outros custos", extraCustos, corDestaque, "-"));
+      container.appendChild(listas);
+    }
 
     const assinatura = document.createElement("div");
     assinatura.style.cssText = "text-align:center; font-size:9px; letter-spacing:0.08em; text-transform:uppercase; color:#5B6B7A; margin-top:14px;";
