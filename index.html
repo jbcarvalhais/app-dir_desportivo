@@ -651,6 +651,62 @@
     font-weight: 600;
   }
 
+  .resumo-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .resumo-box {
+    flex: 1 1 240px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .resumo-titulo {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--brass-2);
+    margin: 0 0 8px;
+  }
+  .resumo-linha {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.88rem;
+  }
+  .resumo-linha:last-of-type { border-bottom: none; }
+  .resumo-nome {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .resumo-valor {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .resumo-total {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .resumo-vazio {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
   .campo-container {
     background: linear-gradient(180deg, var(--pitch), var(--pitch-2));
     border-radius: 10px;
@@ -1057,6 +1113,7 @@
     <div class="view-tabs">
       <button class="view-tab active" id="tabListaBtn">Lista</button>
       <button class="view-tab" id="tabCampoBtn">Campo</button>
+      <button class="view-tab" id="tabResumoBtn">Resumo</button>
     </div>
 
     <div class="row" style="margin-bottom: 10px;">
@@ -1076,6 +1133,9 @@
       </div>
       <div id="campoContainer" class="campo-container"></div>
       <div id="gruposTaticosLista" class="grupos-taticos-lista hidden"></div>
+    </div>
+    <div id="resumoWrap" class="hidden">
+      <div class="resumo-grid" id="resumoGrid"></div>
     </div>
   </section>
 
@@ -1154,6 +1214,8 @@
   const squadStatus = document.getElementById("squadStatus");
   const squadList = document.getElementById("squadList");
   const campoWrap = document.getElementById("campoWrap");
+  const resumoWrap = document.getElementById("resumoWrap");
+  const resumoGrid = document.getElementById("resumoGrid");
   const campoContainer = document.getElementById("campoContainer");
   const campoSimplesBtn = document.getElementById("campoSimplesBtn");
   const campoDetalhadaBtn = document.getElementById("campoDetalhadaBtn");
@@ -1164,6 +1226,7 @@
   const campoSubtabHint = document.getElementById("campoSubtabHint");
   const tabListaBtn = document.getElementById("tabListaBtn");
   const tabCampoBtn = document.getElementById("tabCampoBtn");
+  const tabResumoBtn = document.getElementById("tabResumoBtn");
   let campoModo = "simples";
   const GRUPO_PALETTE = [
     { fill: "rgba(184,149,90,0.30)", border: "#D4B67E", text: "#F3E4CB" },
@@ -1488,19 +1551,18 @@
     }
   }
 
-  tabListaBtn.addEventListener("click", () => {
-    tabListaBtn.classList.add("active");
-    tabCampoBtn.classList.remove("active");
-    squadList.classList.remove("hidden");
-    campoWrap.classList.add("hidden");
-  });
+  function ativarTab(tab) {
+    tabListaBtn.classList.toggle("active", tab === "lista");
+    tabCampoBtn.classList.toggle("active", tab === "campo");
+    tabResumoBtn.classList.toggle("active", tab === "resumo");
+    squadList.classList.toggle("hidden", tab !== "lista");
+    campoWrap.classList.toggle("hidden", tab !== "campo");
+    resumoWrap.classList.toggle("hidden", tab !== "resumo");
+  }
 
-  tabCampoBtn.addEventListener("click", () => {
-    tabCampoBtn.classList.add("active");
-    tabListaBtn.classList.remove("active");
-    campoWrap.classList.remove("hidden");
-    squadList.classList.add("hidden");
-  });
+  tabListaBtn.addEventListener("click", () => ativarTab("lista"));
+  tabCampoBtn.addEventListener("click", () => ativarTab("campo"));
+  tabResumoBtn.addEventListener("click", () => ativarTab("resumo"));
 
   function setCampoModo(modo) {
     campoModo = modo;
@@ -1638,8 +1700,10 @@
 
   document.getElementById("confirmReforcoBtn").addEventListener("click", () => {
     const nome = reforcoNome.value.trim();
-    const valorDigitado = parseFloat(reforcoValor.value);
-    const valor = !isNaN(valorDigitado) && valorDigitado >= 0 ? valorDigitado : 0;
+    const valorTexto = reforcoValor.value.trim();
+    const valorDigitado = parseFloat(valorTexto);
+    const valorValido = valorTexto !== "" && !isNaN(valorDigitado) && valorDigitado >= 0;
+    const valor = valorValido ? valorDigitado : (reforcoEmprestimo.checked ? 0 : null);
     players.push({
       id: "reforco-" + Date.now(),
       name: nome,
@@ -1762,6 +1826,97 @@
 
       custosExtraList.appendChild(item);
     });
+  }
+
+  function construirResumoBox(titulo, linhas, totalTexto) {
+    const box = document.createElement("div");
+    box.className = "resumo-box";
+
+    const tituloEl = document.createElement("p");
+    tituloEl.className = "resumo-titulo";
+    tituloEl.textContent = titulo;
+    box.appendChild(tituloEl);
+
+    if (linhas.length === 0) {
+      const vazio = document.createElement("p");
+      vazio.className = "resumo-vazio";
+      vazio.textContent = "Nenhum";
+      box.appendChild(vazio);
+      return box;
+    }
+
+    linhas.forEach(([nomeTexto, valorTexto]) => {
+      const linha = document.createElement("div");
+      linha.className = "resumo-linha";
+      const nomeEl = document.createElement("span");
+      nomeEl.className = "resumo-nome";
+      nomeEl.textContent = nomeTexto;
+      const valorEl = document.createElement("span");
+      valorEl.className = "resumo-valor";
+      valorEl.textContent = valorTexto;
+      linha.appendChild(nomeEl);
+      linha.appendChild(valorEl);
+      box.appendChild(linha);
+    });
+
+    const totalRow = document.createElement("div");
+    totalRow.className = "resumo-total";
+    const totalLabel = document.createElement("span");
+    totalLabel.textContent = "Total";
+    const totalValue = document.createElement("span");
+    totalValue.className = "resumo-valor";
+    totalValue.textContent = totalTexto;
+    totalRow.appendChild(totalLabel);
+    totalRow.appendChild(totalValue);
+    box.appendChild(totalRow);
+
+    return box;
+  }
+
+  function renderResumo() {
+    resumoGrid.innerHTML = "";
+
+    const saem = players.filter((p) => p.estado === "sai");
+    let totalSaem = 0;
+    const linhasSaem = saem.map((p) => {
+      const valor = parseFloat(p.valor) || 0;
+      const pct = p.clubPct != null ? parseFloat(p.clubPct) : 100;
+      const contribuicao = valor * (pct / 100);
+      totalSaem += contribuicao;
+      return [p.name, contribuicao.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€"];
+    });
+    resumoGrid.appendChild(construirResumoBox("Saem", linhasSaem, totalSaem.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€"));
+
+    const entram = agruparReforcosSemNome(players.filter((p) => p.estado === "entra"));
+    let totalEntram = 0;
+    const linhasEntram = entram.map((p) => {
+      if (p.__grupoReforco) {
+        totalEntram -= p.valorSoma;
+        return [p.count + "× Reforço" + (p.isEmprestimo ? " (empréstimo)" : ""), p.valorTexto === "?" ? "?" : "-" + p.valorTexto];
+      }
+      const nomeTexto = (p.name && p.name.trim() ? p.name : "Reforço") + (p.isEmprestimo ? " (empréstimo)" : "");
+      if (!jogadorTemValor(p)) return [nomeTexto, "?"];
+      const valor = parseFloat(p.valor);
+      totalEntram -= valor;
+      return [nomeTexto, "-" + valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€"];
+    });
+    resumoGrid.appendChild(construirResumoBox("Entram", linhasEntram, totalEntram.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€"));
+
+    let totalGanhos = 0;
+    const linhasGanhos = extraGanhos.map((g) => {
+      const valor = parseFloat(g.valor) || 0;
+      totalGanhos += valor;
+      return [g.descricao, "+" + valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€"];
+    });
+    resumoGrid.appendChild(construirResumoBox("Outros ganhos", linhasGanhos, "+" + totalGanhos.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€"));
+
+    let totalCustos = 0;
+    const linhasCustos = extraCustos.map((c) => {
+      const valor = parseFloat(c.valor) || 0;
+      totalCustos += valor;
+      return [c.descricao, "-" + valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€"];
+    });
+    resumoGrid.appendChild(construirResumoBox("Outros custos", linhasCustos, "-" + totalCustos.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€"));
   }
 
   orcamentoInicialInput.addEventListener("input", () => {
@@ -1969,6 +2124,7 @@
 
     renderGanhosExtra();
     renderCustosExtra();
+    renderResumo();
     updateSaldoDisplay();
     renderCampo();
   }
@@ -2662,6 +2818,46 @@
     }
   }
 
+  function jogadorTemValor(p) {
+    return p.valor !== null && p.valor !== undefined && p.valor !== "" && !isNaN(parseFloat(p.valor));
+  }
+
+  function formatarValorGrupoReforco(jogadores) {
+    const comValor = jogadores.filter(jogadorTemValor);
+    const semValor = jogadores.length - comValor.length;
+    const soma = comValor.reduce((total, p) => total + parseFloat(p.valor), 0);
+    if (comValor.length === 0) return { texto: "?", soma: 0 };
+    const somaTexto = soma.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€";
+    return { texto: semValor > 0 ? somaTexto + " + ?" : somaTexto, soma: soma };
+  }
+
+  function agruparReforcosSemNome(lista) {
+    const nomeados = [];
+    const semNomeDefinitivo = [];
+    const semNomeEmprestimo = [];
+    lista.forEach((p) => {
+      const semNome = p.isReforco && !(p.name && p.name.trim());
+      if (!semNome) { nomeados.push(p); return; }
+      if (p.isEmprestimo) semNomeEmprestimo.push(p); else semNomeDefinitivo.push(p);
+    });
+    const resultado = nomeados.slice();
+    [
+      { jogadores: semNomeDefinitivo, isEmprestimo: false },
+      { jogadores: semNomeEmprestimo, isEmprestimo: true }
+    ].forEach(({ jogadores, isEmprestimo }) => {
+      if (jogadores.length === 0) return;
+      const valorInfo = formatarValorGrupoReforco(jogadores);
+      resultado.push({
+        __grupoReforco: true,
+        count: jogadores.length,
+        isEmprestimo: isEmprestimo,
+        valorTexto: valorInfo.texto,
+        valorSoma: valorInfo.soma
+      });
+    });
+    return resultado;
+  }
+
   function construirLinhaTotal(label, valorTexto, corDestaque) {
     const totalRow = document.createElement("div");
     totalRow.style.cssText = "display:flex; justify-content:space-between; gap:8px; padding-top:6px; margin-top:4px; border-top:1px solid " + corDestaque + "; font-weight:700;";
@@ -2675,7 +2871,7 @@
     return totalRow;
   }
 
-  function construirListaTransferencias(titulo, lista, tipo, corDestaque) {
+  function construirListaTransferencias(titulo, listaOriginal, tipo, corDestaque) {
     const box = document.createElement("div");
     box.style.cssText = "flex:1; background:#1D2C39; border-radius:8px; padding:10px; font-size:11px; font-family:'IBM Plex Sans', Arial, sans-serif; color:#EAEDEF;";
 
@@ -2684,7 +2880,7 @@
     titleEl.textContent = titulo;
     box.appendChild(titleEl);
 
-    if (lista.length === 0) {
+    if (listaOriginal.length === 0) {
       const vazio = document.createElement("div");
       vazio.style.cssText = "color:#8A9BA8;";
       vazio.textContent = "Nenhum";
@@ -2692,24 +2888,36 @@
       return box;
     }
 
+    const lista = tipo === "entra" ? agruparReforcosSemNome(listaOriginal) : listaOriginal;
+
     let total = 0;
     lista.forEach((p) => {
       const linha = document.createElement("div");
       linha.style.cssText = "display:flex; justify-content:space-between; gap:8px; padding:3px 0; border-bottom:1px solid #24343F;";
       const nome = document.createElement("span");
       nome.style.cssText = "overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0;";
-      nome.textContent = (p.name && p.name.trim() ? p.name : "Reforço") + (tipo === "entra" && p.isEmprestimo ? " (empréstimo)" : "");
       const valorTxt = document.createElement("span");
       valorTxt.style.cssText = "white-space:nowrap; font-family:'IBM Plex Mono', monospace; flex-shrink:0;";
-      const valor = parseFloat(p.valor) || 0;
-      if (tipo === "sai") {
-        const pct = p.clubPct != null ? parseFloat(p.clubPct) : 100;
-        const contribuicao = valor * (pct / 100);
-        total += contribuicao;
-        valorTxt.textContent = contribuicao.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€";
+
+      if (p.__grupoReforco) {
+        nome.textContent = p.count + "× Reforço" + (p.isEmprestimo ? " (empréstimo)" : "");
+        total -= p.valorSoma;
+        valorTxt.textContent = p.valorTexto === "?" ? "?" : "-" + p.valorTexto;
       } else {
-        total -= valor;
-        valorTxt.textContent = "-" + valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€";
+        nome.textContent = (p.name && p.name.trim() ? p.name : "Reforço") + (tipo === "entra" && p.isEmprestimo ? " (empréstimo)" : "");
+        if (tipo === "sai") {
+          const valor = parseFloat(p.valor) || 0;
+          const pct = p.clubPct != null ? parseFloat(p.clubPct) : 100;
+          const contribuicao = valor * (pct / 100);
+          total += contribuicao;
+          valorTxt.textContent = contribuicao.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€";
+        } else if (!jogadorTemValor(p)) {
+          valorTxt.textContent = "?";
+        } else {
+          const valor = parseFloat(p.valor);
+          total -= valor;
+          valorTxt.textContent = "-" + valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + "M€";
+        }
       }
       linha.appendChild(nome);
       linha.appendChild(valorTxt);
