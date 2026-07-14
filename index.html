@@ -1085,6 +1085,16 @@
       <button class="secondary" id="copiarLinkBtn">Copiar link</button>
     </div>
     <p class="status" id="squadStatus"></p>
+    <div class="row" id="jogadorActionsRow">
+      <button class="secondary" id="toggleJogadorBtn">+ Adicionar jogador ao plantel</button>
+    </div>
+    <div class="reforco-form hidden" id="jogadorForm">
+      <div><input type="text" id="jogadorNome" placeholder="Nome do jogador (opcional)"></div>
+      <div>
+        <select id="jogadorPosicao"></select>
+      </div>
+      <button id="confirmJogadorBtn">Adicionar</button>
+    </div>
     <div class="row" id="transferActionsRow">
       <button class="secondary" id="toggleReforcoBtn">+ Adicionar reforço</button>
       <button class="secondary" id="toggleGanhoBtn">+ Adicionar ganho extra</button>
@@ -1248,6 +1258,11 @@
     return GRUPO_PALETTE[g.colorIndex % GRUPO_PALETTE.length];
   }
   const saldoValue = document.getElementById("saldoValue");
+  const toggleJogadorBtn = document.getElementById("toggleJogadorBtn");
+  const jogadorForm = document.getElementById("jogadorForm");
+  const jogadorNome = document.getElementById("jogadorNome");
+  const jogadorPosicao = document.getElementById("jogadorPosicao");
+  jogadorPosicao.innerHTML = positionSelectHTML("CCB");
   const toggleReforcoBtn = document.getElementById("toggleReforcoBtn");
   const reforcoForm = document.getElementById("reforcoForm");
   const reforcoNome = document.getElementById("reforcoNome");
@@ -1736,6 +1751,30 @@
     reforcoValor.placeholder = temNome ? "Valor (M€)" : "Só com nome definido";
   }
   reforcoNome.addEventListener("input", atualizarCampoValorReforco);
+
+  toggleJogadorBtn.addEventListener("click", () => {
+    jogadorForm.classList.toggle("hidden");
+  });
+
+  document.getElementById("confirmJogadorBtn").addEventListener("click", () => {
+    players.push({
+      id: "jogador-" + Date.now(),
+      name: jogadorNome.value.trim(),
+      numero: null,
+      photo: null,
+      posPrincipal: jogadorPosicao.value,
+      posSecundarias: [],
+      estado: "fica",
+      valor: null,
+      clubPct: 100,
+      isReforco: false,
+      isEmprestimo: false,
+      nota: null
+    });
+    jogadorNome.value = "";
+    jogadorForm.classList.add("hidden");
+    renderSquad();
+  });
 
   toggleReforcoBtn.addEventListener("click", () => {
     reforcoForm.classList.toggle("hidden");

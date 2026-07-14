@@ -36,6 +36,7 @@ Direção "sala de reuniões do clube": visual escuro e sóbrio, inspirado nas g
 - Definido pelo utilizador: estado, valor (€M), retenção % (só quando "Sai"), posições (principal + secundárias).
 - **Ordem dentro do mesmo grupo/zona é editável** (decisão do utilizador a 2026-07-09): arrastar um jogador para cima/baixo dentro do mesmo grupo da Lista, ou dentro da mesma zona do Campo (incluindo ocupantes principais na vista detalhada), reordena-o sem mudar a posição. Implementado reinserindo o jogador no array `players` na posição correspondente ao subconjunto do grupo/zona — não é um campo separado. Posições secundárias (vista detalhada) não são arrastáveis, são só pré-visualização.
 - **Nota livre por jogador** (decisão do utilizador a 2026-07-09): campo de texto curto opcional, editável na Lista (ex.: "Capitão, renovar contrato"). Só visível na Lista — não entra na imagem exportada, para não sobrecarregar.
+- **Adicionar jogador ao plantel manualmente (decisão do utilizador a 2026-07-14):** botão "+ Adicionar jogador ao plantel" (separado dos botões de reforço/ganho/custo, e por isso continua visível em Modo seleção) para cobrir o caso de a API-Football não ter um jogador que já faz parte do plantel real. Formulário mínimo — Nome (opcional) + Posição — cria um jogador em tudo igual a um importado da API: estado "Fica", sem `isReforco`, sem efeito no saldo. Nome, número e posições continuam editáveis depois, tal como qualquer outro jogador.
 
 ## Vocabulário de posições (fechado)
 - Guarda-redes: GK
