@@ -100,6 +100,7 @@
   }
   input::placeholder { color: var(--muted); opacity: 1; }
   input[type="number"] { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  input:disabled { opacity: 0.45; cursor: not-allowed; }
   .row {
     display: flex;
     gap: 8px;
@@ -1694,16 +1695,28 @@
     });
   }
 
+  function atualizarCampoValorReforco() {
+    const temNome = reforcoNome.value.trim() !== "";
+    reforcoValor.disabled = !temNome;
+    if (!temNome) reforcoValor.value = "";
+    reforcoValor.placeholder = temNome ? "Valor (M€)" : "Só com nome definido";
+  }
+  reforcoNome.addEventListener("input", atualizarCampoValorReforco);
+
   toggleReforcoBtn.addEventListener("click", () => {
     reforcoForm.classList.toggle("hidden");
+    atualizarCampoValorReforco();
   });
 
   document.getElementById("confirmReforcoBtn").addEventListener("click", () => {
     const nome = reforcoNome.value.trim();
-    const valorTexto = reforcoValor.value.trim();
-    const valorDigitado = parseFloat(valorTexto);
-    const valorValido = valorTexto !== "" && !isNaN(valorDigitado) && valorDigitado >= 0;
-    const valor = valorValido ? valorDigitado : (reforcoEmprestimo.checked ? 0 : null);
+    let valor = null;
+    if (nome) {
+      const valorTexto = reforcoValor.value.trim();
+      const valorDigitado = parseFloat(valorTexto);
+      const valorValido = valorTexto !== "" && !isNaN(valorDigitado) && valorDigitado >= 0;
+      valor = valorValido ? valorDigitado : (reforcoEmprestimo.checked ? 0 : null);
+    }
     players.push({
       id: "reforco-" + Date.now(),
       name: nome,
@@ -1972,6 +1985,10 @@
     reader.readAsText(file);
   });
 
+  function reforcoSemNome(p) {
+    return p.isReforco && !(p.name && p.name.trim());
+  }
+
   function computeSaldo() {
     const totalJogadores = players.reduce((total, p) => {
       if (p.estado === "sai") {
@@ -1980,6 +1997,7 @@
         return total + valor * (pct / 100);
       }
       if (p.estado === "entra") {
+        if (reforcoSemNome(p)) return total;
         const valor = parseFloat(p.valor) || 0;
         return total - valor;
       }
@@ -2538,6 +2556,16 @@
     nameInput.addEventListener("input", () => {
       player.name = nameInput.value;
       nameInput.classList.toggle("nome-indefinido", player.isReforco && !nameInput.value.trim());
+      if (player.isReforco) {
+        const valorInput = rowBottom.querySelector(".valor-input");
+        if (valorInput) {
+          const temNome = nameInput.value.trim() !== "";
+          valorInput.disabled = !temNome;
+          valorInput.placeholder = temNome ? "Valor" : "Só com nome definido";
+          if (!temNome) { valorInput.value = ""; player.valor = null; }
+        }
+        updateSaldoDisplay();
+      }
       autoSave();
     });
     rowTop.appendChild(nameInput);
@@ -2772,8 +2800,15 @@
     valorInput.type = "number";
     valorInput.min = "0";
     valorInput.step = "0.1";
-    valorInput.placeholder = "Valor";
-    valorInput.value = player.valor != null ? player.valor : "";
+    valorInput.className = "valor-input";
+    if (tipo === "entra" && reforcoSemNome(player)) {
+      valorInput.disabled = true;
+      valorInput.placeholder = "Só com nome definido";
+      valorInput.value = "";
+    } else {
+      valorInput.placeholder = "Valor";
+      valorInput.value = player.valor != null ? player.valor : "";
+    }
     valorInput.addEventListener("input", () => {
       player.valor = valorInput.value;
       updateSaldoDisplay();
@@ -2819,6 +2854,7 @@
   }
 
   function jogadorTemValor(p) {
+    if (reforcoSemNome(p)) return false;
     return p.valor !== null && p.valor !== undefined && p.valor !== "" && !isNaN(parseFloat(p.valor));
   }
 
