@@ -1,6 +1,6 @@
-# Janela Aberta (Diretor Desportivo) — convenções do projeto
+# Football Squad Building (Diretor Desportivo) — convenções do projeto
 
-> Nome da app decidido pelo utilizador a 2026-07-09, no âmbito de tornar o repositório público para publicar no GitHub Pages. O repositório GitHub e a pasta local mantêm-se `app-dir_desportivo`/`dir_desportivo` — só o nome apresentado na app (título da página, cabeçalho, imagem exportada) mudou.
+> Nome da app decidido pelo utilizador a 2026-07-09 ("Janela Aberta"), no âmbito de tornar o repositório público para publicar no GitHub Pages, e mudado de novo a 2026-07-15 para "Football Squad Building". O repositório GitHub e a pasta local mantêm-se `app-dir_desportivo`/`dir_desportivo` (repositório antigo) e `jaerix-squadbuilding` (repositório anónimo, ver "Publicação anónima" abaixo) — só o nome apresentado na app (título da página, cabeçalho, imagem exportada) mudou.
 
 ## Quem é o utilizador
 Estudante de mestrado em Ciência de Dados, não programador. Todo o código é escrito e mantido pelo Claude. As explicações de passos técnicos (instalar, testar, publicar) devem ser em **português europeu**, sem jargão técnico desnecessário. O utilizador dedica ~2h/semana ao projeto: entregáveis pequenos, um de cada vez, testados no browser antes de avançar.
@@ -110,6 +110,14 @@ Botão "Guardar análise" descarrega um `.json` local com todo o estado do cená
 ## Guardação automática + retomar análise (decisão do utilizador a 2026-07-09)
 Além do ficheiro `.json` manual, a app guarda uma cópia completa do cenário em curso no `localStorage` a cada alteração (nome, número, estado, posição, valor, cor, reforços, ganhos extra, reordenação) — silenciosa, sem qualquer ação do utilizador. Ao abrir a app, se existir uma cópia automática, aparece uma faixa no ecrã "Procurar clube" ("Tens uma análise por retomar: [Clube]") com as opções "Retomar análise" (repõe tudo, tal como o carregamento manual) ou "Descartar" (apaga a cópia). A cópia automática só é substituída quando há uma alteração real no cenário atual — não é limpa só por clicar em "Procurar outro clube", precisamente para servir de rede de segurança contra fechos acidentais do browser.
 
+## Publicação anónima (decisão do utilizador a 2026-07-15)
+Um desconhecido reconheceu o utilizador a partir do link `jbcarvalhais.github.io`, o que motivou uma segunda publicação, anónima, em paralelo com a original — **as duas continuam a existir e a funcionar**, não é uma substituição.
+
+- **Repositório original** (continua a existir, decisão do utilizador de o deixar como está): `jbcarvalhais/app-dir_desportivo`, pasta local `C:\Apps\dir_desportivo` (este projeto), publicado em `https://jbcarvalhais.github.io/app-dir_desportivo/` via GitHub Pages. Identidade git: `João` / `jbcarvalhais@gmail.com` (configuração **global** da máquina).
+- **Repositório anónimo**: `jaerix-labs/jaerix-squadbuilding` (conta GitHub nova, sem ligação à identidade real), pasta local **separada** `C:\Apps\jaerix-squadbuilding` — histórico git limpo, começado do zero (sem nenhum commit antigo), com identidade git **local a essa pasta** (não a global): `jaerix-labs` / `squadbuildingjohn@gmail.com`. Publicado via **Netlify** (não GitHub Pages) em `https://squadbuilding.netlify.app` — o Netlify escolhe o nome do site à parte do nome da conta/repositório, ao contrário do GitHub Pages, por isso não expõe `jaerix-labs` no URL. O repositório no GitHub é **privado** (esconde o histórico de commits e o código-fonte de quem não tem acesso). Autenticação separada da conta antiga via `credential.https://github.com.useHttpPath true`, configurado só nessa pasta.
+- **Estatísticas de visitas** (só no site anónimo): script GoatCounter (gratuito, sem cookies, sem dados pessoais) no `index.html`, painel em `https://jaerix-squadbuilding.goatcounter.com`.
+- **Consequência prática para trabalho futuro:** quando o utilizador aprovar uma alteração, o fluxo normal (ver "Regra de processo") só faz commit/push ao repositório onde a sessão está a correr. Se o utilizador quiser a mesma alteração nos dois sítios, é preciso copiar o `index.html` (e o `CLAUDE.md`, se relevante) para a outra pasta e repetir commit/push lá — são **duas árvores git independentes**, sem remote em comum, exatamente para o histórico do repositório anónimo nunca conter os commits antigos identificáveis.
+
 ## Ordem de construção (um entregável de cada vez)
 1. Importar (chave + procurar clube + buscar plantel) → vista de lista editável, agrupada por linha, com placeholder de iniciais e idade inline. ✅
 2. Estados (fica/sai/entra/fora) + saldo com retenção. ✅
@@ -134,6 +142,7 @@ Além do ficheiro `.json` manual, a app guarda uma cópia completa do cenário e
 21. Reforço sem nome nunca tem valor associado (campo bloqueado até haver nome); reforços sem nome juntam-se numa linha "N× Reforço — ?" nas listas de resumo; novo separador "Resumo" na app com as mesmas quatro listas da imagem exportada. ✅
 22. "Modo seleção": esconde saldo, orçamento, botões de transferência e o separador Resumo (na app e na imagem exportada) para analisar plantéis de seleções nacionais, sem tocar na lógica de estados/saldo. ✅
 23. Nova posição "SS" (2º avançado), como linha compacta entre Médios ofensivos e Avançados — adicionada a `POSITION_GROUPS` e `FIELD_ROWS`, propagada automaticamente a todo o lado que já iterava essas listas (Campo nas 3 sub-vistas, editor de posições, dropdown de reforço, Lista, imagem exportada). ✅
+24. Ecrã da chave da API: instruções passo a passo para obter uma chave grátis, e alternativa "Começar do zero" (sem API, plantel construído à mão). Publicação anónima em paralelo (ver "Publicação anónima"), com Netlify + GoatCounter. Nome da app mudado para "Football Squad Building". ✅
 
 ## Riscos conhecidos
 - Plantel importado reflete a época terminada, não as transferências do mês corrente — o utilizador corrige à mão.

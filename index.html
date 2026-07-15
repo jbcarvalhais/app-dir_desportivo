@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Janela Aberta</title>
+<title>Football Squad Building</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -141,6 +141,48 @@
     font-size: 0.9rem;
     color: var(--muted);
     margin-top: 8px;
+  }
+  .key-instructions {
+    margin-top: 16px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .key-instructions-title {
+    margin: 0 0 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .key-instructions ol {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .key-instructions li { margin-bottom: 3px; }
+  .key-instructions a { color: var(--brass); }
+  .key-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 18px 0;
+    color: var(--muted);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .key-divider::before, .key-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .scratch-hint {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin: 0 0 10px;
   }
   .team-results {
     margin-top: 12px;
@@ -985,6 +1027,7 @@
   }
 
   @media (max-width: 480px) {
+    header h1 { font-size: 1.05rem; letter-spacing: 0.02em; }
     .avatar, .avatar-placeholder { width: 30px; height: 30px; }
     .player-row-top input[type="text"] { min-width: 56px; }
     .numero-wrap input[type="number"] { width: 46px; }
@@ -1012,7 +1055,7 @@
 <body>
 
 <header>
-  <h1>Janela Aberta</h1>
+  <h1>Football Squad Building</h1>
 </header>
 
 <main>
@@ -1025,6 +1068,24 @@
       <button id="saveKeyBtn">Guardar chave</button>
     </div>
     <p class="error" id="keyError"></p>
+
+    <div class="key-instructions">
+      <p class="key-instructions-title">Como obter uma chave grátis</p>
+      <ol>
+        <li>Vai a <a href="https://dashboard.api-football.com/" target="_blank" rel="noopener">dashboard.api-football.com</a></li>
+        <li>Cria uma conta ou inicia sessão</li>
+        <li>Vai a <strong>Account &gt; My Access</strong> e copia a "API-KEY" que aparece em cima</li>
+      </ol>
+    </div>
+
+    <div class="key-divider"><span>ou</span></div>
+
+    <p class="scratch-hint">Não queres usar a API? Podes construir o plantel à mão, adicionando os jogadores um a um.</p>
+    <button class="secondary" id="toggleScratchBtn">Começar do zero</button>
+    <div class="row hidden" id="scratchForm" style="margin-top: 10px;">
+      <div><input type="text" id="scratchNomeInput" placeholder="Nome do clube ou seleção (opcional)"></div>
+      <button id="confirmScratchBtn">Começar</button>
+    </div>
   </section>
 
   <section id="searchBlock" class="hidden">
@@ -1492,6 +1553,21 @@
   document.getElementById("saveKeyBtn").addEventListener("click", saveKey);
   apiKeyInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") saveKey();
+  });
+
+  document.getElementById("toggleScratchBtn").addEventListener("click", () => {
+    document.getElementById("scratchForm").classList.toggle("hidden");
+  });
+
+  document.getElementById("confirmScratchBtn").addEventListener("click", () => {
+    const nome = document.getElementById("scratchNomeInput").value.trim();
+    players = [];
+    squadClubName.textContent = nome || "Novo plantel";
+    squadClubLogo.src = "";
+    squadClubLogo.style.visibility = "hidden";
+    renderSquad();
+    keyBlock.classList.add("hidden");
+    showSquadScreen();
   });
 
   document.getElementById("changeKeyBtn").addEventListener("click", () => {
@@ -3233,7 +3309,7 @@
 
     const assinatura = document.createElement("div");
     assinatura.style.cssText = "text-align:center; font-size:9px; letter-spacing:0.08em; text-transform:uppercase; color:#5B6B7A; margin-top:14px;";
-    assinatura.textContent = "Janela Aberta";
+    assinatura.textContent = "Football Squad Building";
     container.appendChild(assinatura);
 
     return container;
