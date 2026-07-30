@@ -388,6 +388,9 @@
   .player-row-top input[type="text"].nome-reforco {
     font-weight: 700;
   }
+  .player-row-top input[type="text"].nome-desejado {
+    color: var(--signal-green);
+  }
   .player-row-top input[type="text"].nome-indefinido::placeholder {
     color: var(--signal-green);
     font-weight: 700;
@@ -867,6 +870,9 @@
   .campo-chip .campo-nome.campo-nome-reforco {
     font-weight: 700;
   }
+  .campo-chip .campo-nome.campo-nome-desejado {
+    color: var(--signal-green-fill);
+  }
   .campo-chip-secundaria {
     opacity: 0.55;
     transform: scale(0.9);
@@ -1170,6 +1176,9 @@
       <label style="display:flex; align-items:center; gap:6px; margin-bottom:0; white-space:nowrap;">
         <input type="checkbox" id="reforcoEmprestimo"> É empréstimo
       </label>
+      <label style="display:flex; align-items:center; gap:6px; margin-bottom:0; white-space:nowrap;">
+        <input type="checkbox" id="reforcoDesejado"> Ainda não é oficial (alvo/desejado)
+      </label>
       <button id="confirmReforcoBtn">Adicionar</button>
     </div>
     <div class="reforco-form hidden" id="ganhoForm">
@@ -1330,6 +1339,7 @@
   const reforcoPosicao = document.getElementById("reforcoPosicao");
   const reforcoValor = document.getElementById("reforcoValor");
   const reforcoEmprestimo = document.getElementById("reforcoEmprestimo");
+  const reforcoDesejado = document.getElementById("reforcoDesejado");
   reforcoPosicao.innerHTML = positionSelectHTML("CCB");
   const toggleGanhoBtn = document.getElementById("toggleGanhoBtn");
   const ganhoForm = document.getElementById("ganhoForm");
@@ -1878,11 +1888,13 @@
       clubPct: 100,
       isReforco: true,
       isEmprestimo: reforcoEmprestimo.checked,
+      isDesejado: reforcoDesejado.checked,
       nota: null
     });
     reforcoNome.value = "";
     reforcoValor.value = "";
     reforcoEmprestimo.checked = false;
+    reforcoDesejado.checked = false;
     reforcoForm.classList.add("hidden");
     renderSquad();
   });
@@ -2654,7 +2666,7 @@
     }
 
     const nome = document.createElement("span");
-    nome.className = "campo-nome" + (nomeIndefinido ? " reforco-indefinido" : (player.isReforco ? " campo-nome-reforco" : ""));
+    nome.className = "campo-nome" + (nomeIndefinido ? " reforco-indefinido" : (player.isReforco ? " campo-nome-reforco" + (player.isDesejado ? " campo-nome-desejado" : "") : ""));
     nome.textContent = nomeIndefinido ? "Reforço" : player.name;
     chip.appendChild(nome);
 
@@ -2702,6 +2714,7 @@
     nameInput.placeholder = player.isReforco ? "Reforço" : "Nome";
     nameInput.className = player.isReforco ? "nome-reforco" : "";
     if (nomeIndefinido) nameInput.classList.add("nome-indefinido");
+    if (player.isReforco && player.isDesejado && !nomeIndefinido) nameInput.classList.add("nome-desejado");
     nameInput.addEventListener("input", () => {
       player.name = nameInput.value;
       nameInput.classList.toggle("nome-indefinido", player.isReforco && !nameInput.value.trim());
@@ -2772,6 +2785,17 @@
 
     if (player.isReforco) {
       rowBottom.appendChild(renderValorField(player, "entra"));
+
+      if (player.isDesejado) {
+        const oficialBtn = document.createElement("button");
+        oficialBtn.className = "remove-link";
+        oficialBtn.textContent = "Tornar oficial";
+        oficialBtn.addEventListener("click", () => {
+          player.isDesejado = false;
+          renderSquad();
+        });
+        rowBottom.appendChild(oficialBtn);
+      }
 
       const removeBtn = document.createElement("button");
       removeBtn.className = "remove-link";
@@ -3238,7 +3262,7 @@
       }
 
       const nome = document.createElement("span");
-      nome.style.cssText = "overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" + (nomeIndefinido ? " font-weight:700; color:#1F7A50;" : (player.isReforco ? " font-weight:700;" : ""));
+      nome.style.cssText = "overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" + (nomeIndefinido || (player.isReforco && player.isDesejado) ? " font-weight:700; color:#1F7A50;" : (player.isReforco ? " font-weight:700;" : ""));
       nome.textContent = nomeIndefinido ? "Reforço" : player.name;
       chip.appendChild(nome);
 
