@@ -390,6 +390,7 @@
   }
   .player-row-top input[type="text"].nome-desejado {
     color: var(--signal-green);
+    font-weight: 700;
   }
   .player-row-top input[type="text"].nome-indefinido::placeholder {
     color: var(--signal-green);
@@ -731,6 +732,10 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     min-width: 0;
+  }
+  .resumo-nome.resumo-nome-desejado {
+    color: var(--signal-green);
+    font-weight: 700;
   }
   .resumo-valor {
     font-family: var(--font-mono);
@@ -2019,11 +2024,11 @@
       return box;
     }
 
-    linhas.forEach(([nomeTexto, valorTexto]) => {
+    linhas.forEach(([nomeTexto, valorTexto, desejado]) => {
       const linha = document.createElement("div");
       linha.className = "resumo-linha";
       const nomeEl = document.createElement("span");
-      nomeEl.className = "resumo-nome";
+      nomeEl.className = "resumo-nome" + (desejado ? " resumo-nome-desejado" : "");
       nomeEl.textContent = nomeTexto;
       const valorEl = document.createElement("span");
       valorEl.className = "resumo-valor";
@@ -2057,7 +2062,7 @@
       const pct = p.clubPct != null ? parseFloat(p.clubPct) : 100;
       const contribuicao = valor * (pct / 100);
       totalSaem += contribuicao;
-      return [p.name, contribuicao.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€"];
+      return [p.name, contribuicao.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€", !!p.isDesejadaSaida];
     });
     resumoGrid.appendChild(construirResumoBox("Saem", linhasSaem, totalSaem.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€"));
 
@@ -2066,13 +2071,13 @@
     const linhasEntram = entram.map((p) => {
       if (p.__grupoReforco) {
         totalEntram -= p.valorSoma;
-        return [p.count + "× Reforço" + (p.isEmprestimo ? " (empréstimo)" : ""), p.valorTexto === "?" ? "?" : "-" + p.valorTexto];
+        return [p.count + "× Reforço" + (p.isEmprestimo ? " (empréstimo)" : ""), p.valorTexto === "?" ? "?" : "-" + p.valorTexto, true];
       }
       const nomeTexto = (p.name && p.name.trim() ? p.name : "Reforço") + (p.isEmprestimo ? " (empréstimo)" : "");
-      if (!jogadorTemValor(p)) return [nomeTexto, "?"];
+      if (!jogadorTemValor(p)) return [nomeTexto, "?", true];
       const valor = parseFloat(p.valor);
       totalEntram -= valor;
-      return [nomeTexto, "-" + valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€"];
+      return [nomeTexto, "-" + valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€", !!p.isDesejado];
     });
     resumoGrid.appendChild(construirResumoBox("Entram", linhasEntram, totalEntram.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€"));
 
@@ -2715,6 +2720,7 @@
     nameInput.className = player.isReforco ? "nome-reforco" : "";
     if (nomeIndefinido) nameInput.classList.add("nome-indefinido");
     if (player.isReforco && player.isDesejado && !nomeIndefinido) nameInput.classList.add("nome-desejado");
+    if (!player.isReforco && player.estado === "sai" && player.isDesejadaSaida) nameInput.classList.add("nome-desejado");
     nameInput.addEventListener("input", () => {
       player.name = nameInput.value;
       nameInput.classList.toggle("nome-indefinido", player.isReforco && !nameInput.value.trim());
@@ -2809,6 +2815,18 @@
       rowBottom.appendChild(renderEstadoSelect(player));
       if (player.estado === "sai") {
         rowBottom.appendChild(renderValorField(player, "sai"));
+        const desejadaLabel = document.createElement("label");
+        desejadaLabel.style.cssText = "display:flex; align-items:center; gap:4px; margin-bottom:0; white-space:nowrap;";
+        const desejadaCb = document.createElement("input");
+        desejadaCb.type = "checkbox";
+        desejadaCb.checked = !!player.isDesejadaSaida;
+        desejadaCb.addEventListener("change", () => {
+          player.isDesejadaSaida = desejadaCb.checked;
+          renderSquad();
+        });
+        desejadaLabel.appendChild(desejadaCb);
+        desejadaLabel.appendChild(document.createTextNode("Ainda não é oficial (desejo vender)"));
+        rowBottom.appendChild(desejadaLabel);
       }
       if (player.estado === "fora" || player.estado === "emprestado") {
         const restoreBtn = document.createElement("button");
@@ -3103,8 +3121,9 @@
     lista.forEach((p) => {
       const linha = document.createElement("div");
       linha.style.cssText = "display:flex; justify-content:space-between; gap:8px; padding:3px 0; border-bottom:1px solid #24343F;";
+      const desejado = p.__grupoReforco ? true : (tipo === "sai" ? !!p.isDesejadaSaida : !!p.isDesejado);
       const nome = document.createElement("span");
-      nome.style.cssText = "overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0;";
+      nome.style.cssText = "overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0;" + (desejado ? " font-weight:700; color:#4CAF7D;" : "");
       const valorTxt = document.createElement("span");
       valorTxt.style.cssText = "white-space:nowrap; font-family:'IBM Plex Mono', monospace; flex-shrink:0;";
 
