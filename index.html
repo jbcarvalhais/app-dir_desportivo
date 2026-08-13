@@ -2055,9 +2055,12 @@
   function renderResumo() {
     resumoGrid.innerHTML = "";
 
-    const saem = players.filter((p) => p.estado === "sai");
+    const saem = players.filter((p) => p.estado === "sai" || p.estado === "emprestado");
     let totalSaem = 0;
     const linhasSaem = saem.map((p) => {
+      if (p.estado === "emprestado") {
+        return [p.name + " (empréstimo)", "—", false];
+      }
       const valor = parseFloat(p.valor) || 0;
       const pct = p.clubPct != null ? parseFloat(p.clubPct) : 100;
       const contribuicao = valor * (pct / 100);
@@ -2095,7 +2098,9 @@
       totalCustos += valor;
       return [c.descricao, "-" + valor.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€"];
     });
-    resumoGrid.appendChild(construirResumoBox("Outros custos", linhasCustos, "-" + totalCustos.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€"));
+    if (extraCustos.length > 0) {
+      resumoGrid.appendChild(construirResumoBox("Outros custos", linhasCustos, "-" + totalCustos.toLocaleString("pt-PT", { maximumFractionDigits: 1 }) + " M€"));
+    }
   }
 
   orcamentoInicialInput.addEventListener("input", () => {
@@ -3132,8 +3137,11 @@
         total -= p.valorSoma;
         valorTxt.textContent = p.valorTexto === "?" ? "?" : "-" + p.valorTexto;
       } else {
-        nome.textContent = (p.name && p.name.trim() ? p.name : "Reforço") + (tipo === "entra" && p.isEmprestimo ? " (empréstimo)" : "");
-        if (tipo === "sai") {
+        const estaEmprestado = tipo === "sai" && p.estado === "emprestado";
+        nome.textContent = (p.name && p.name.trim() ? p.name : "Reforço") + (tipo === "entra" && p.isEmprestimo ? " (empréstimo)" : "") + (estaEmprestado ? " (empréstimo)" : "");
+        if (estaEmprestado) {
+          valorTxt.textContent = "—";
+        } else if (tipo === "sai") {
           const valor = parseFloat(p.valor) || 0;
           const pct = p.clubPct != null ? parseFloat(p.clubPct) : 100;
           const contribuicao = valor * (pct / 100);
@@ -3198,7 +3206,7 @@
 
   async function construirTemplateExportacao(formatoVertical) {
     const emVista = visiveis();
-    const saem = players.filter((p) => p.estado === "sai");
+    const saem = players.filter((p) => p.estado === "sai" || p.estado === "emprestado");
     const entram = players.filter((p) => p.estado === "entra");
     const corDestaque = getComputedStyle(document.documentElement).getPropertyValue("--brass").trim() || "#B8955A";
     const largura = formatoVertical ? EXPORT_WIDTH_VERTICAL : EXPORT_WIDTH;
@@ -3346,7 +3354,9 @@
       listas.appendChild(construirListaTransferencias("Saem", saem, "sai", corDestaque));
       listas.appendChild(construirListaTransferencias("Entram", entram, "entra", corDestaque));
       listas.appendChild(construirListaValores("Outros ganhos", extraGanhos, corDestaque, "+"));
-      listas.appendChild(construirListaValores("Outros custos", extraCustos, corDestaque, "-"));
+      if (extraCustos.length > 0) {
+        listas.appendChild(construirListaValores("Outros custos", extraCustos, corDestaque, "-"));
+      }
       container.appendChild(listas);
     }
 
